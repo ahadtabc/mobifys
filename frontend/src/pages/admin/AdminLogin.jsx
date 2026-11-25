@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setAdmin } from '../../redux/slices/authSlice';
+import mobifysLogo from '../../assets/mobifys-logo.png';
 import './AdminLogin.css';
 
 export default function AdminLogin() {
@@ -45,22 +46,22 @@ export default function AdminLogin() {
     <div className="admin-auth-page">
       <header className="admin-auth-header">
         <div className="admin-brand-icon">
-          <ShoppingBag size={18} />
+          <img src={mobifysLogo} alt="Mobifys" />
         </div>
-        <span className="admin-brand-title">mobifys.</span>
+        <span className="admin-brand-title">mobifys<span style={{ color: '#ff5521' }}>.</span></span>
         <span className="admin-brand-subtitle">ADMIN CONSOLE</span>
       </header>
 
       <main className="admin-auth-main">
         <div className="admin-auth-card">
           <div className="admin-auth-heading">
-            <h1>Admin Sign In</h1>
+            <h1>Sign In</h1>
             <p>Enter your credentials to access the console</p>
           </div>
 
           <form onSubmit={handleSubmit} className="admin-auth-form">
             <div className="form-group">
-              <label>Work Email Address</label>
+              <label>Email Address</label>
               <div className="input-wrapper">
                 <Mail className="input-icon-left" size={16} />
                 <input
@@ -107,7 +108,7 @@ export default function AdminLogin() {
             </label>
 
             <button type="submit" disabled={loading} className="btn-primary-full">
-              {loading ? 'Signing in...' : 'Sign In to Admin Portal'}
+              {loading ? 'Signing in...' : 'Sign In Admin Portal'}
               <ArrowRight size={16} />
             </button>
           </form>

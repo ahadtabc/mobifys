@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   LayoutDashboard,
@@ -12,11 +12,13 @@ import {
   Gift,
   BarChart3,
   LogOut,
-  ShoppingBag,
+  LayoutGrid,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { logoutAdminState } from '../../redux/slices/authSlice';
+import mobifysLogo from '../../assets/mobifys-logo.png';
 import './AdminLayout.css';
 
 const navItems = [
@@ -36,6 +38,10 @@ export default function AdminLayout() {
   const { admin } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const currentPage = navItems.find(
+    (item) => pathname === item.path || pathname.startsWith(`${item.path}/`),
+  )?.name || 'Dashboard';
 
   const handleLogout = async () => {
     try {
@@ -53,10 +59,12 @@ export default function AdminLayout() {
       <aside className="admin-sidebar">
         <div className="sidebar-brand">
           <div className="admin-brand-icon">
-            <ShoppingBag size={18} />
+            <img src={mobifysLogo} alt="Mobifys" />
           </div>
-          <div>
-            <div className="sidebar-brand-name">mobifys.</div>
+          <div className="sidebar-brand-copy">
+            <div className="sidebar-brand-name">
+              mobifys<span style={{ color: '#ff5521' }}>.</span>
+            </div>
             <div className="sidebar-brand-tag">ADMIN CONSOLE</div>
           </div>
         </div>
@@ -82,16 +90,23 @@ export default function AdminLayout() {
 
       <div className="admin-main-wrapper">
         <header className="admin-topbar">
-          <div className="topbar-breadcrumb">
-            Console › <span>Admin Portal</span>
-          </div>
+          <nav className="topbar-breadcrumb" aria-label="Breadcrumb">
+            <NavLink to="/admin/dashboard" className="topbar-console-link">
+              <LayoutGrid size={14} />
+              <span>Console</span>
+            </NavLink>
+            <ChevronRight size={16} aria-hidden="true" />
+            <span className="topbar-current-page" aria-current="page">
+              {currentPage}
+            </span>
+          </nav>
 
           <div className="topbar-actions">
+           
             <div className="admin-profile-pill">
               <div className="admin-avatar-circle">AD</div>
               <div>
                 <div className="admin-profile-name">{admin?.name || 'Admin User'}</div>
-                <span className="admin-role-badge">SUPER ADMIN</span>
               </div>
             </div>
 

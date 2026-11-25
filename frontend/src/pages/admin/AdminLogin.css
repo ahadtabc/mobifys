@@ -13,33 +13,42 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1;
 }
 
 .admin-brand-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background-color: var(--primary);
-  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .admin-brand-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   color: var(--text-dark);
   letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .admin-brand-subtitle {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text-light);
   text-transform: uppercase;
-  margin-left: 4px;
+  margin-left: auto;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .admin-auth-main {

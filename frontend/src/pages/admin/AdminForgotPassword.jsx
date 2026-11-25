@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
+import mobifysLogo from '../../assets/mobifys-logo.png';
 import './AdminForgotPassword.css';
 
 export default function AdminForgotPassword() {
@@ -71,9 +72,9 @@ export default function AdminForgotPassword() {
     <div className="admin-auth-page">
       <header className="admin-auth-header">
         <div className="admin-brand-icon">
-          <ShoppingBag size={18} />
+          <img src={mobifysLogo} alt="Mobifys" />
         </div>
-        <span className="admin-brand-title">mobifys.</span>
+        <span className="admin-brand-title">mobifys<span style={{ color: '#ff5521' }}>.</span></span>
         <span className="admin-brand-subtitle">ADMIN CONSOLE</span>
       </header>
 
