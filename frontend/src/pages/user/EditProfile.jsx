@@ -1,7 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Upload, Save, Mail, Lock, ArrowLeft, Trash2, Home, ChevronRight } from 'lucide-react';
+import {
+  Upload,
+  Save,
+  Mail,
+  Lock,
+  ArrowLeft,
+  Trash2,
+  Home,
+  ChevronRight,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setUser } from '../../redux/slices/authSlice';
@@ -31,6 +42,8 @@ export default function EditProfile() {
     confirmPassword: '',
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -325,25 +338,47 @@ export default function EditProfile() {
 
         <div className="edit-field-group">
           <label>Current Password</label>
-          <input
-            type="password"
-            value={passwords.currentPassword}
-            onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-            placeholder="Enter current password"
-            className="edit-input"
-          />
+          <div className="edit-password-input-wrap">
+            <input
+              type={showCurrentPassword ? 'text' : 'password'}
+              value={passwords.currentPassword}
+              onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+              placeholder="Enter current password"
+              className="edit-input edit-password-input"
+            />
+            <button
+              type="button"
+              className="edit-password-toggle"
+              onClick={() => setShowCurrentPassword((visible) => !visible)}
+              aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'}
+              aria-pressed={showCurrentPassword}
+            >
+              {showCurrentPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
         </div>
 
         <div className="two-col-fields">
           <div className="edit-field-group">
             <label>New Password</label>
-            <input
-              type="password"
-              value={passwords.newPassword}
-              onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-              placeholder="Minimum 8 characters"
-              className="edit-input"
-            />
+            <div className="edit-password-input-wrap">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={passwords.newPassword}
+                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                placeholder="Minimum 8 characters"
+                className="edit-input edit-password-input"
+              />
+              <button
+                type="button"
+                className="edit-password-toggle"
+                onClick={() => setShowNewPassword((visible) => !visible)}
+                aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                aria-pressed={showNewPassword}
+              >
+                {showNewPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </div>
 
           <div className="edit-field-group">

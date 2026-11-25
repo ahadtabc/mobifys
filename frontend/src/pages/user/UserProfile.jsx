@@ -98,14 +98,6 @@ export default function UserProfile() {
         >
           <MapPin size={14} /> Addresses ({addresses.length})
         </NavLink>
-        <NavLink
-          to="/profile/edit"
-          className={({ isActive }) =>
-            isActive ? 'profile-tab-link active' : 'profile-tab-link'
-          }
-        >
-          <ShieldCheck size={14} /> Edit Profile & Security
-        </NavLink>
       </div>
 
       <div className="profile-page-title">
@@ -137,7 +129,7 @@ export default function UserProfile() {
                 month: 'short',
                 year: 'numeric',
               })}{' '}
-              • Referral Code: <strong>{profile.referralCode}</strong>
+            
             </div>
           </div>
         </div>
@@ -160,7 +152,7 @@ export default function UserProfile() {
       <div className="profile-cards-grid">
         {/* Wallet & Referral Card */}
         <div className="profile-section-card" id="wallet-section">
-          <div>
+          <div className="profile-card-content">
             <div className="card-top-row">
               <div className="card-icon-badge">
                 <Wallet size={18} />
@@ -169,7 +161,7 @@ export default function UserProfile() {
                 ₹{(profile.walletBalance || 0).toLocaleString('en-IN')}
               </span>
             </div>
-            <h3>My Robotics Wallet</h3>
+            <h3>My Wallet</h3>
             <p>
               Available Balance:{' '}
               <strong>₹{(profile.walletBalance || 0).toLocaleString('en-IN')}.00</strong> • Instant
@@ -197,14 +189,14 @@ export default function UserProfile() {
 
         {/* Saved Delivery Locations Card */}
         <div className="profile-section-card">
-          <div>
+          <div className="profile-card-content">
             <div className="card-top-row">
               <div className="card-icon-badge">
                 <MapPin size={18} />
               </div>
               <span className="card-pill-tag">{addresses.length} Saved</span>
             </div>
-            <h3>Saved Delivery Locations</h3>
+            <h3>Saved Locations</h3>
             {addresses.length === 0 ? (
               <p>No delivery addresses saved yet. Add one for faster checkout.</p>
             ) : (
@@ -228,7 +220,7 @@ export default function UserProfile() {
 
         {/* Account Security Card */}
         <div className="profile-section-card">
-          <div>
+          <div className="profile-card-content">
             <div className="card-top-row">
               <div className="card-icon-badge green">
                 <ShieldCheck size={18} />

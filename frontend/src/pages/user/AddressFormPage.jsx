@@ -95,7 +95,7 @@ export default function AddressFormPage() {
           </div>
 
           <div className="edit-field-group">
-            <label>PIN Code (Postal Index Number) *</label>
+            <label>PIN Code *</label>
             <input
               type="text"
               required

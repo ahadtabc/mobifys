@@ -327,6 +327,50 @@
   background-color: #ffffff;
 }
 
+.edit-password-input-wrap {
+  position: relative;
+}
+
+.edit-password-input {
+  padding-right: 44px;
+}
+
+.edit-password-toggle {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.edit-password-toggle:hover {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+  color: var(--text-dark);
+}
+
+.edit-password-toggle svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.edit-password-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .email-change-box {
   padding: 16px;
   border-radius: 14px;

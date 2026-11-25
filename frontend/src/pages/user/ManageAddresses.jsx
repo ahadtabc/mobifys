@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Plus, Edit3, Trash2, CheckCircle2, User, MapPin, ShieldCheck } from 'lucide-react';
+import { Plus, Edit3, Trash2, CheckCircle2, User, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import './ManageAddresses.css';
@@ -59,9 +59,6 @@ export default function ManageAddresses() {
         </NavLink>
         <NavLink to="/profile/addresses" className="profile-tab-link active">
           <MapPin size={14} /> Addresses ({addresses.length})
-        </NavLink>
-        <NavLink to="/profile/edit" className="profile-tab-link">
-          <ShieldCheck size={14} /> Edit Profile & Security
         </NavLink>
       </div>
 
