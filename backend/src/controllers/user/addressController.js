@@ -1,7 +1,5 @@
 import Address from '../../models/Address.js';
 
-// @desc    Get all active addresses for logged-in user
-// @route   GET /api/user/addresses
 export const getAddresses = async (req, res, next) => {
   try {
     const addresses = await Address.find({ userId: req.user._id, status: 'active' }).sort({
@@ -14,8 +12,6 @@ export const getAddresses = async (req, res, next) => {
   }
 };
 
-// @desc    Add a new address
-// @route   POST /api/user/addresses
 export const addAddress = async (req, res, next) => {
   try {
     const { label, address, city, pin, phone, isDefault } = req.body;
@@ -51,8 +47,6 @@ export const addAddress = async (req, res, next) => {
   }
 };
 
-// @desc    Edit an existing address
-// @route   PUT /api/user/addresses/:id
 export const updateAddress = async (req, res, next) => {
   try {
     const { label, address, city, pin, phone, isDefault } = req.body;
@@ -85,8 +79,6 @@ export const updateAddress = async (req, res, next) => {
   }
 };
 
-// @desc    Delete an address (soft delete matching your schema's status field)
-// @route   DELETE /api/user/addresses/:id
 export const deleteAddress = async (req, res, next) => {
   try {
     const addr = await Address.findOne({ _id: req.params.id, userId: req.user._id, status: 'active' });
@@ -100,7 +92,6 @@ export const deleteAddress = async (req, res, next) => {
     addr.isDefault = false;
     await addr.save();
 
-    // Promote the newest remaining active address to default if needed
     if (wasDefault) {
       const nextAddr = await Address.findOne({ userId: req.user._id, status: 'active' }).sort({
         createdAt: -1,

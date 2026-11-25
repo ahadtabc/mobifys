@@ -3,8 +3,6 @@ import User from '../../models/User.js';
 import generateToken from '../../utils/generateToken.js';
 import { createAndSendOtp, verifyOtpCode } from '../../services/otpService.js';
 
-// @desc    Register user & dispatch 6-digit verification OTP
-// @route   POST /api/user/auth/signup
 export const signupUser = async (req, res, next) => {
   try {
     const { name, email, phone, password, confirmPassword } = req.body;
@@ -32,7 +30,6 @@ export const signupUser = async (req, res, next) => {
 
     let user;
     if (existingUser && existingUser.status === 'unverified') {
-      // Update unverified registration details and resend OTP
       existingUser.name = name.trim();
       existingUser.phone = phone?.trim() || '';
       existingUser.passwordHash = passwordHash;
@@ -65,8 +62,6 @@ export const signupUser = async (req, res, next) => {
   }
 };
 
-// @desc    Verify Signup OTP & activate account
-// @route   POST /api/user/auth/verify-signup-otp
 export const verifySignupOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
@@ -105,8 +100,6 @@ export const verifySignupOtp = async (req, res, next) => {
   }
 };
 
-// @desc    Resend OTP (signup or forgot_password)
-// @route   POST /api/user/auth/resend-otp
 export const resendUserOtp = async (req, res, next) => {
   try {
     const { email, purpose } = req.body;
@@ -136,8 +129,6 @@ export const resendUserOtp = async (req, res, next) => {
   }
 };
 
-// @desc    User Sign In
-// @route   POST /api/user/auth/login
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -197,8 +188,6 @@ export const loginUser = async (req, res, next) => {
   }
 };
 
-// @desc    Forgot Password - Send OTP
-// @route   POST /api/user/auth/forgot-password
 export const forgotUserPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -229,8 +218,6 @@ export const forgotUserPassword = async (req, res, next) => {
   }
 };
 
-// @desc    Reset Password with OTP
-// @route   POST /api/user/auth/reset-password
 export const resetUserPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword, confirmPassword } = req.body;
@@ -263,8 +250,6 @@ export const resetUserPassword = async (req, res, next) => {
   }
 };
 
-// @desc    Get Current Logged-in User
-// @route   GET /api/user/auth/me
 export const getUserMe = async (req, res) => {
   res.status(200).json({
     success: true,
@@ -272,8 +257,6 @@ export const getUserMe = async (req, res) => {
   });
 };
 
-// @desc    User Logout
-// @route   POST /api/user/auth/logout
 export const logoutUser = (req, res) => {
   res.clearCookie('mobifys_token');
   res.status(200).json({ success: true, message: 'Signed out successfully' });

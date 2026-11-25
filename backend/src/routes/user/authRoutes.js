@@ -24,7 +24,6 @@ router.post('/reset-password', resetUserPassword);
 router.get('/me', protect, getUserMe);
 router.post('/logout', logoutUser);
 
-// Google SSO
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 router.get(
   '/google/callback',
@@ -38,7 +37,6 @@ router.get(
   }
 );
 
-// Facebook SSO
 router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
 router.get(
   '/facebook/callback',

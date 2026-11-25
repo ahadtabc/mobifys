@@ -4,8 +4,6 @@ import Address from '../../models/Address.js';
 import { uploadToS3, deleteFromS3 } from '../../services/s3Service.js';
 import { createAndSendOtp, verifyOtpCode } from '../../services/otpService.js';
 
-// @desc    Get User Profile + Active Addresses
-// @route   GET /api/user/profile
 export const getUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id).select('-passwordHash');
@@ -24,8 +22,6 @@ export const getUserProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Update Name, Phone & Optional Profile Photo (AWS S3)
-// @route   PUT /api/user/profile
 export const updateUserProfile = async (req, res, next) => {
   try {
     const { name, phone } = req.body;
@@ -38,7 +34,6 @@ export const updateUserProfile = async (req, res, next) => {
       user.phone = phone.trim();
     }
 
-    // Upload new profile picture to S3 if provided
     if (req.file) {
       const oldImageUrl = user.profileImage;
       const newImageUrl = await uploadToS3(req.file, 'profiles');
@@ -69,8 +64,6 @@ export const updateUserProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Request OTP to verify a new email address
-// @route   POST /api/user/profile/request-email-change
 export const requestEmailChangeOtp = async (req, res, next) => {
   try {
     const { newEmail } = req.body;
@@ -104,8 +97,6 @@ export const requestEmailChangeOtp = async (req, res, next) => {
   }
 };
 
-// @desc    Verify OTP & commit new email address
-// @route   POST /api/user/profile/verify-email-change
 export const verifyEmailChange = async (req, res, next) => {
   try {
     const { newEmail, otp } = req.body;
@@ -130,8 +121,6 @@ export const verifyEmailChange = async (req, res, next) => {
   }
 };
 
-// @desc    Change Password from Profile
-// @route   PUT /api/user/profile/change-password
 export const changeUserPassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -150,7 +139,6 @@ export const changeUserPassword = async (req, res, next) => {
 
     const user = await User.findById(req.user._id);
 
-    // If user already has a password, require currentPassword verification
     if (user.passwordHash) {
       if (!currentPassword) {
         return res.status(400).json({ success: false, message: 'Current password is required' });
