@@ -159,7 +159,7 @@ export const loginUser = async (req, res, next) => {
     if (!user.passwordHash) {
       return res.status(400).json({
         success: false,
-        message: 'This account uses Google/Facebook Sign-In. Please continue with SSO.',
+        message: 'This account uses Google Sign-In. Please continue with Google.',
       });
     }
 

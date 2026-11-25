@@ -108,7 +108,7 @@ export default function AdminLogin() {
             </label>
 
             <button type="submit" disabled={loading} className="btn-primary-full">
-              {loading ? 'Signing in...' : 'Sign In Admin Portal'}
+              {loading ? 'Signing in...' : 'Sign In'}
               <ArrowRight size={16} />
             </button>
           </form>

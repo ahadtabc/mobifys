@@ -5,6 +5,7 @@ import { MailCheck, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setUser } from '../../redux/slices/authSlice';
+import OtpInput from '../../components/OtpInput';
 import './VerifyEmailOtp.css';
 
 export default function VerifyEmailOtp() {
@@ -76,14 +77,7 @@ export default function VerifyEmailOtp() {
               </p>
             </div>
 
-            <input
-              type="text"
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              placeholder="000000"
-              className="otp-six-input"
-            />
+            <OtpInput value={otp} onChange={setOtp} disabled={loading} />
 
             <div className="otp-resend-line">
               Didn't receive the code?{' '}

@@ -1,22 +1,34 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+dotenv.config();
 
 export const sendOtpEmail = async (toEmail, otp, purpose) => {
   const titles = {
-    signup: "Verify Your Mobifys Account",
-    forgot_password: "Reset Your Mobifys Password",
-    email_change: "Confirm Your New Email Address",
-    admin_reset: "Mobifys Admin Password Recovery Code",
+    signup: 'Verify Your Mobifys Account',
+    forgot_password: 'Reset Your Mobifys Password',
+    email_change: 'Confirm Your New Email Address',
+    admin_reset: 'Mobifys Admin Password Recovery Code',
   };
 
-  const subject = titles[purpose] || "Your Mobifys Verification Code";
+  const subject = titles[purpose] || 'Your Mobifys Verification Code';
+
+  // Local dev fallback if Gmail credentials are not set yet
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || process.env.EMAIL_USER === 'your_email@gmail.com') {
+    console.log(`\n========================================`);
+    console.log(`[DEV OTP] To: ${toEmail} | Purpose: ${purpose}`);
+    console.log(`[DEV OTP] 6-Digit Code: ${otp}`);
+    console.log(`========================================\n`);
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px; border: 1px solid #eee; border-radius: 12px;">

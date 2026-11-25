@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -36,6 +37,8 @@ app.use(passport.initialize());
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Mobifys API is running' });
 });
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Mount Admin Routes
 app.use('/api/admin/auth', adminAuthRoutes);

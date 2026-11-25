@@ -1,0 +1,46 @@
+.otp-inputs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(42px, 56px));
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.otp-inputs input {
+  width: 100%;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #f9fafb;
+  color: var(--text-dark);
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  caret-color: var(--primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.otp-inputs input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.otp-inputs input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 420px) {
+  .otp-inputs {
+    grid-template-columns: repeat(6, minmax(38px, 48px));
+    gap: 6px;
+  }
+
+  .otp-inputs input {
+    height: 52px;
+    font-size: 20px;
+  }
+}

@@ -55,6 +55,12 @@
   transition: background-color 0.15s;
 }
 
+.sso-brand-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
 .btn-sso:hover {
   background-color: #f3f4f6;
 }

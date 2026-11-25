@@ -6,7 +6,7 @@ A full-stack e-commerce application.
 | -------- | -------------------------------------------------------- |
 | Frontend | React (Vite), React Router, Tailwind CSS                 |
 | Backend  | Node.js, Express, MongoDB (Mongoose), AWS S3 for images  |
-| Auth     | JWT (access + refresh cookies), OTP email, Google/Facebook SSO |
+| Auth     | JWT (access + refresh cookies), OTP email, Google SSO        |
 | Docs     | Postman collection, Figma designs, Eraser diagram        |
 
 ## Repository layout

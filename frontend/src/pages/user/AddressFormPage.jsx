@@ -55,6 +55,7 @@ export default function AddressFormPage() {
         const { data } = await axiosInstance.post('/user/addresses', form);
         toast.success(data.message);
       }
+      window.dispatchEvent(new Event('addresses-updated'));
       navigate('/profile/addresses');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save address');

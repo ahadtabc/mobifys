@@ -37,17 +37,4 @@ router.get(
   }
 );
 
-router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
-router.get(
-  '/facebook/callback',
-  passport.authenticate('facebook', {
-    session: false,
-    failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=sso_failed`,
-  }),
-  (req, res) => {
-    generateToken(res, req.user._id, req.user.role, true);
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/`);
-  }
-);
-
 export default router;

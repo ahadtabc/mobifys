@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
   User,
@@ -10,10 +10,12 @@ import {
   LogOut,
   ArrowRight,
   Gift,
+  Copy,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
-import { setUser, logoutUserState } from '../../redux/slices/authSlice';
+import { setUser } from '../../redux/slices/authSlice';
+import copyTextToClipboard from '../../utils/copyTextToClipboard';
 import './UserProfile.css';
 
 export default function UserProfile() {
@@ -22,7 +24,7 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
 
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const { hash } = useLocation();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -41,14 +43,20 @@ export default function UserProfile() {
     fetchProfile();
   }, [dispatch]);
 
-  const handleLogout = async () => {
+  useEffect(() => {
+    if (loading || !profile || !hash) return undefined;
+    const frameId = requestAnimationFrame(() => {
+      document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [hash, loading, profile]);
+
+  const handleCopyReferralCode = async () => {
     try {
-      await axiosInstance.post('/user/auth/logout');
-      dispatch(logoutUserState());
-      toast.success('Signed out');
-      navigate('/login');
+      await copyTextToClipboard(profile.referralCode);
+      toast.success('Referral code copied');
     } catch {
-      toast.error('Logout failed');
+      toast.error('Could not copy the referral code');
     }
   };
 
@@ -138,7 +146,11 @@ export default function UserProfile() {
           <Link to="/profile/edit" className="btn-edit-profile">
             <Edit3 size={14} /> Edit Profile
           </Link>
-          <button type="button" onClick={handleLogout} className="btn-user-signout">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event('open-user-logout-confirmation'))}
+            className="btn-user-signout"
+          >
             <LogOut size={14} /> Sign Out
           </button>
         </div>
@@ -147,7 +159,7 @@ export default function UserProfile() {
       {/* Overview Cards Grid */}
       <div className="profile-cards-grid">
         {/* Wallet & Referral Card */}
-        <div className="profile-section-card">
+        <div className="profile-section-card" id="wallet-section">
           <div>
             <div className="card-top-row">
               <div className="card-icon-badge">
@@ -164,9 +176,22 @@ export default function UserProfile() {
               checkout active for hardware orders.
             </p>
           </div>
-          <div style={{ fontSize: '12px', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Gift size={14} color="#ff5722" /> Share referral code:{' '}
+          <div id="referral-section" className="profile-referral-line">
+            <Gift size={14} color="#ff5722" />
+            <span>Share referral code:</span>
             <strong>{profile.referralCode}</strong>
+            {profile.referralCode && (
+              <button
+                type="button"
+                className="profile-copy-referral"
+                onClick={handleCopyReferralCode}
+                aria-label={`Copy referral code ${profile.referralCode}`}
+                title="Copy referral code"
+              >
+                <Copy size={14} />
+                Copy
+              </button>
+            )}
           </div>
         </div>
 

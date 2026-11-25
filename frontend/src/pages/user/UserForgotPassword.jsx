@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, KeyRound, ArrowRight, ArrowLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
-import axiosInstance from '../../api/axiosInstance';
-import './UserForgotPassword.css';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, KeyRound, ArrowRight, ArrowLeft } from "lucide-react";
+import toast from "react-hot-toast";
+import axiosInstance from "../../api/axiosInstance";
+import OtpInput from "../../components/OtpInput";
+import "./UserForgotPassword.css";
 
 export default function UserForgotPassword() {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP + Set New Password
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [timer, setTimer] = useState(120);
   const [loading, setLoading] = useState(false);
 
@@ -23,15 +24,17 @@ export default function UserForgotPassword() {
   }, [step, timer]);
 
   const handleSendCode = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     try {
       setLoading(true);
-      const { data } = await axiosInstance.post('/user/auth/forgot-password', { email });
+      const { data } = await axiosInstance.post("/user/auth/forgot-password", {
+        email,
+      });
       toast.success(data.message);
       setTimer(120);
       setStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not send reset code');
+      toast.error(err.response?.data?.message || "Could not send reset code");
     } finally {
       setLoading(false);
     }
@@ -41,16 +44,16 @@ export default function UserForgotPassword() {
     e.preventDefault();
     try {
       setLoading(true);
-      const { data } = await axiosInstance.post('/user/auth/reset-password', {
+      const { data } = await axiosInstance.post("/user/auth/reset-password", {
         email,
         otp,
         newPassword,
         confirmPassword,
       });
       toast.success(data.message);
-      navigate('/login');
+      navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Password reset failed');
+      toast.error(err.response?.data?.message || "Password reset failed");
     } finally {
       setLoading(false);
     }
@@ -67,8 +70,10 @@ export default function UserForgotPassword() {
               </div>
               <h1>Forgot Password?</h1>
               <p>
-                Enter your registered email address below. We will dispatch a 6-digit verification
-                security code to authenticate your identity.
+                Enter your registered email address below.{" "}
+                <div>
+                  We will dispatch a 6-digit verification security code .
+                </div>
               </p>
             </div>
 
@@ -86,15 +91,23 @@ export default function UserForgotPassword() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-user-submit">
-              {loading ? 'Sending...' : 'Send Verification Code'}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-user-submit"
+            >
+              {loading ? "Sending..." : "Send Verification Code"}
               <ArrowRight size={16} />
             </button>
 
             <div className="auth-switch-footer">
-              <Link to="/login" className="orange-link" style={{ color: '#6b7280' }}>
-                <ArrowLeft size={13} style={{ verticalAlign: 'middle' }} /> Cancel and return to Sign
-                in
+              <Link
+                to="/login"
+                className="orange-link"
+                style={{ color: "#6b7280" }}
+              >
+                <ArrowLeft size={13} style={{ verticalAlign: "middle" }} />{" "}
+                Cancel and return to Sign in
               </Link>
             </div>
           </form>
@@ -106,25 +119,19 @@ export default function UserForgotPassword() {
               </div>
               <h1>Set New Password</h1>
               <p>
-                Enter the 6-digit code sent to <strong>{email}</strong> and choose a new password.
+                Enter the 6-digit code sent to <strong>{email}</strong> and
+                choose a new password.
               </p>
             </div>
 
             <div className="field-block">
               <label>6-DIGIT VERIFICATION CODE</label>
-              <input
-                type="text"
-                maxLength={6}
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000"
-                className="otp-six-input"
-              />
-              <div className="otp-resend-line" style={{ marginTop: '8px' }}>
+              <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+              <div className="otp-resend-line" style={{ marginTop: "8px" }}>
                 {timer > 0 ? (
                   <span>
-                    Resend code in {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
+                    Resend code in {Math.floor(timer / 60)}:
+                    {String(timer % 60).padStart(2, "0")}
                   </span>
                 ) : (
                   <button type="button" onClick={handleSendCode}>
@@ -162,8 +169,12 @@ export default function UserForgotPassword() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-user-submit">
-              {loading ? 'Updating...' : 'Update Password & Continue'}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-user-submit"
+            >
+              {loading ? "Updating..." : "Update Password & Continue"}
               <ArrowRight size={16} />
             </button>
           </form>

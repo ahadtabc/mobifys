@@ -42,6 +42,10 @@ export const updateUserProfile = async (req, res, next) => {
       if (oldImageUrl) {
         await deleteFromS3(oldImageUrl).catch(() => {});
       }
+    } else if (req.body.removeProfileImage === 'true' && user.profileImage) {
+      const oldImageUrl = user.profileImage;
+      user.profileImage = '';
+      await deleteFromS3(oldImageUrl).catch(() => {});
     }
 
     await user.save();

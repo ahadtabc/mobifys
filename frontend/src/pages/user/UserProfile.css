@@ -180,6 +180,40 @@
   justify-content: space-between;
 }
 
+.profile-referral-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #4b5563;
+  font-size: 12px;
+}
+
+.profile-referral-line strong {
+  color: var(--text-dark);
+}
+
+.profile-copy-referral {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 4px;
+  padding: 5px 8px;
+  border: 1px solid #ffe0d2;
+  border-radius: 8px;
+  background: #fff7f2;
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-copy-referral:hover {
+  border-color: #ffb99f;
+  background: #fff0e8;
+}
+
 .card-icon-badge {
   width: 38px;
   height: 38px;

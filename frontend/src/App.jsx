@@ -12,6 +12,7 @@ import UserSignup from './pages/user/UserSignup';
 import VerifyEmailOtp from './pages/user/VerifyEmailOtp';
 import UserForgotPassword from './pages/user/UserForgotPassword';
 import UserProfile from './pages/user/UserProfile';
+import UserComingSoon from './pages/user/UserComingSoon';
 import EditProfile from './pages/user/EditProfile';
 import ManageAddresses from './pages/user/ManageAddresses';
 import AddressFormPage from './pages/user/AddressFormPage';
@@ -65,6 +66,22 @@ export default function App() {
             element={
               <ProtectedUserRoute>
                 <UserProfile />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/orders"
+            element={
+              <ProtectedUserRoute>
+                <UserComingSoon title="My Orders" />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/wishlist"
+            element={
+              <ProtectedUserRoute>
+                <UserComingSoon title="My Wishlist" />
               </ProtectedUserRoute>
             }
           />

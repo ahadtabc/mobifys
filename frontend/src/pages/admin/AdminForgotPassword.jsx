@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import mobifysLogo from '../../assets/mobifys-logo.png';
+import OtpInput from '../../components/OtpInput';
 import './AdminForgotPassword.css';
 
 export default function AdminForgotPassword() {
@@ -22,7 +23,7 @@ export default function AdminForgotPassword() {
   }, [step, timer]);
 
   const handleSendOtp = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     try {
       setLoading(true);
       const { data } = await axiosInstance.post('/admin/auth/forgot-password', { email });
@@ -119,15 +120,7 @@ export default function AdminForgotPassword() {
                   Enter the 6-digit code sent to <strong>{email}</strong>
                 </p>
               </div>
-              <input
-                type="text"
-                maxLength={6}
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000"
-                className="otp-input-box"
-              />
+              <OtpInput value={otp} onChange={setOtp} disabled={loading} />
               <div className="otp-timer-row">
                 {timer > 0 ? (
                   <span>

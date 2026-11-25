@@ -30,6 +30,7 @@ export default function ManageAddresses() {
     try {
       const { data } = await axiosInstance.delete(`/user/addresses/${id}`);
       toast.success(data.message);
+      window.dispatchEvent(new Event('addresses-updated'));
       fetchAddresses();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Delete failed');
@@ -43,6 +44,7 @@ export default function ManageAddresses() {
         isDefault: true,
       });
       toast.success(data.message);
+      window.dispatchEvent(new Event('addresses-updated'));
       fetchAddresses();
     } catch {
       toast.error('Could not set default address');

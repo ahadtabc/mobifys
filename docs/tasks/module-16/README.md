@@ -20,7 +20,7 @@ Task board for this module. Each task has its own branch and its own checklist f
 | 3 | Home page setup                                          | `feature/module-16-user-home-page`            | [03-user-home-page.md](./03-user-home-page.md) | todo   |
 | 4 | Sign up & log in with validation                         | `feature/module-16-user-auth`                 | [04-user-auth.md](./04-user-auth.md)           | todo   |
 | 5 | Sign up with OTP (timer + resend)                        | `feature/module-16-user-otp`                  | [05-user-otp.md](./05-user-otp.md)             | todo   |
-| 6 | Single sign-on (Google, Facebook)                        | `feature/module-16-user-sso`                  | [06-user-sso.md](./06-user-sso.md)             | todo   |
+| 6 | Single sign-on (Google)                                  | `feature/module-16-user-sso`                  | [06-user-sso.md](./06-user-sso.md)             | todo   |
 | 7 | Forgot password                                          | `feature/module-16-user-forgot-password`      | [07-user-forgot-password.md](./07-user-forgot-password.md) | todo |
 | 8 | User profile (display, edit, email verify, change password) | `feature/module-16-user-profile`           | [08-user-profile.md](./08-user-profile.md)     | todo   |
 | 9 | Address management (add, edit, delete)                   | `feature/module-16-user-address`              | [09-user-address.md](./09-user-address.md)     | todo   |
