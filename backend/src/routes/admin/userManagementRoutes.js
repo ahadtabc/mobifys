@@ -4,11 +4,11 @@ import {
   getUserById,
   toggleBlockUser,
 } from '../../controllers/admin/userManagementController.js';
-import { protect, adminOnly } from '../../middlewares/authMiddleware.js';
+import { protectAdmin, adminOnly } from '../../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.use(protect, adminOnly);
+router.use(protectAdmin, adminOnly);
 
 router.get('/', getAllUsers);
 router.get('/:id', getUserById);

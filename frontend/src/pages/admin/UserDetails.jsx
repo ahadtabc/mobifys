@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Ban, CheckCircle, MapPin, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import BlockConfirmModal from '../../components/admin/BlockConfirmModal';
-import './CustomerDetails.css';
+import './UserDetails.css';
 
-export default function CustomerDetails() {
+export default function UserDetails() {
   const { id } = useParams();
   const [customer, setCustomer] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -14,22 +14,32 @@ export default function CustomerDetails() {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchDetails = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axiosInstance.get(`/admin/users/${id}`);
-      setCustomer(data.user);
-      setAddresses(data.addresses);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to fetch customer details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadDetails = useCallback(async () => {
+    const { data } = await axiosInstance.get(`/admin/users/${id}`);
+    return data;
+  }, [id]);
 
   useEffect(() => {
-    fetchDetails();
-  }, [id]);
+    let active = true;
+    loadDetails()
+      .then((data) => {
+        if (!active) return;
+        setCustomer(data.user);
+        setAddresses(data.addresses);
+      })
+      .catch((err) => {
+        if (active) {
+          toast.error(err.response?.data?.message || 'Failed to fetch user details');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [loadDetails]);
 
   const handleToggleBlock = async () => {
     try {
@@ -37,7 +47,9 @@ export default function CustomerDetails() {
       const { data } = await axiosInstance.patch(`/admin/users/${id}/toggle-block`);
       toast.success(data.message);
       setShowModal(false);
-      fetchDetails();
+      const refreshed = await loadDetails();
+      setCustomer(refreshed.user);
+      setAddresses(refreshed.addresses);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
     } finally {
@@ -46,7 +58,7 @@ export default function CustomerDetails() {
   };
 
   if (loading) return <div style={{ fontSize: '12px', color: '#6b7280' }}>Loading profile...</div>;
-  if (!customer) return <div style={{ fontSize: '12px', color: '#dc2626' }}>Customer not found.</div>;
+  if (!customer) return <div style={{ fontSize: '12px', color: '#dc2626' }}>User not found.</div>;
 
   return (
     <div className="customer-details-page">
@@ -70,7 +82,7 @@ export default function CustomerDetails() {
         </div>
 
         <div className="details-header-actions">
-          <Link to="/admin/customers" className="btn-back-users">
+          <Link to="/admin/users" className="btn-back-users">
             <ArrowLeft size={14} /> Back to Users
           </Link>
           <button
@@ -112,7 +124,7 @@ export default function CustomerDetails() {
                   {addr.isDefault && <span className="default-tag">Default</span>}
                 </div>
                 <p style={{ color: '#4b5563' }}>
-                  {addr.address}, {addr.city} - {addr.pin}
+                  {[addr.address, addr.street, addr.city, addr.state].filter(Boolean).join(', ')} - {addr.pin}
                 </p>
               </div>
             ))

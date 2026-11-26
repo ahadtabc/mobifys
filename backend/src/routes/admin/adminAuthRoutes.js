@@ -6,18 +6,20 @@ import {
   resetAdminPassword,
   updateAdminPassword,
   getAdminMe,
+  refreshAdminToken,
   adminLogout,
 } from '../../controllers/admin/adminAuthController.js';
-import { protect, adminOnly } from '../../middlewares/authMiddleware.js';
+import { protectAdmin, adminOnly } from '../../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 router.post('/login', adminLogin);
+router.post('/refresh', refreshAdminToken);
 router.post('/forgot-password', adminForgotPassword);
 router.post('/verify-otp', verifyAdminOtp);
 router.post('/reset-password', resetAdminPassword);
-router.put('/update-password', protect, adminOnly, updateAdminPassword);
-router.get('/me', protect, adminOnly, getAdminMe);
+router.put('/update-password', protectAdmin, adminOnly, updateAdminPassword);
+router.get('/me', protectAdmin, adminOnly, getAdminMe);
 router.post('/logout', adminLogout);
 
 export default router;

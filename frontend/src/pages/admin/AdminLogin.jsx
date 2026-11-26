@@ -34,7 +34,7 @@ export default function AdminLogin() {
 
       dispatch(setAdmin(data.admin));
       toast.success(data.message);
-      navigate('/admin/customers');
+      navigate('/admin/users');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Admin sign in failed');
     } finally {

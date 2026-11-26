@@ -1,14 +1,18 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import Otp from '../models/Otp.js';
+import ApiError from '../utils/ApiError.js';
 import { sendOtpEmail } from './emailService.js';
+
+const OTP_TTL_MS = 2 * 60 * 1000;
+const MAX_OTP_ATTEMPTS = 5;
 
 export const createAndSendOtp = async ({ identifier, purpose, userId = null }) => {
   await Otp.deleteMany({ identifier, purpose, verifiedAt: null });
 
   const plainOtp = crypto.randomInt(100000, 999999).toString();
   const otpHash = await bcrypt.hash(plainOtp, 10);
-  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
   await Otp.create({
     userId,
@@ -28,22 +32,22 @@ export const verifyOtpCode = async ({ identifier, otp, purpose }) => {
   });
 
   if (!record) {
-    throw new Error('OTP not found or already used. Please request a new code.');
+    throw new ApiError(400, 'OTP not found or already used. Please request a new code.');
   }
 
   if (record.expiresAt < new Date()) {
-    throw new Error('OTP has expired. Please click Resend OTP.');
+    throw new ApiError(400, 'OTP has expired. Please click Resend OTP.');
   }
 
-  if (record.attempts >= 5) {
-    throw new Error('Too many failed attempts. Please request a new OTP.');
+  if (record.attempts >= MAX_OTP_ATTEMPTS) {
+    throw new ApiError(400, 'Too many failed attempts. Please request a new OTP.');
   }
 
   const isMatch = await bcrypt.compare(otp, record.otpHash);
   if (!isMatch) {
     record.attempts += 1;
     await record.save();
-    throw new Error('Invalid OTP code. Please try again.');
+    throw new ApiError(400, 'Invalid OTP code. Please try again.');
   }
 
   record.verifiedAt = new Date();

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   User,
   MapPin,
@@ -19,28 +19,37 @@ import copyTextToClipboard from '../../utils/copyTextToClipboard';
 import './UserProfile.css';
 
 export default function UserProfile() {
-  const [profile, setProfile] = useState(null);
+  const authUser = useSelector((state) => state.auth.user);
+  const [profile, setProfile] = useState(authUser || null);
   const [addresses, setAddresses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!authUser);
 
   const dispatch = useDispatch();
   const { hash } = useLocation();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axiosInstance.get('/user/profile');
+    let active = true;
+
+    axiosInstance
+      .get('/user/profile')
+      .then(({ data }) => {
+        if (!active) return;
         setProfile(data.user);
         setAddresses(data.addresses);
         dispatch(setUser(data.user));
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to load profile');
-      } finally {
-        setLoading(false);
-      }
+      })
+      .catch((err) => {
+        if (active) {
+          toast.error(err.response?.data?.message || 'Failed to load profile');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
     };
-    fetchProfile();
   }, [dispatch]);
 
   useEffect(() => {
@@ -98,6 +107,14 @@ export default function UserProfile() {
         >
           <MapPin size={14} /> Addresses ({addresses.length})
         </NavLink>
+        <NavLink
+          to="/profile/edit"
+          className={({ isActive }) =>
+            isActive ? 'profile-tab-link active' : 'profile-tab-link'
+          }
+        >
+          <ShieldCheck size={14} /> Account Security
+        </NavLink>
       </div>
 
       <div className="profile-page-title">
@@ -123,14 +140,15 @@ export default function UserProfile() {
               {profile.phone ? `${profile.phone} • ` : ''}
               {profile.email}
             </div>
-            <div className="profile-member-since">
-              Member since{' '}
-              {new Date(profile.createdAt).toLocaleDateString('en-IN', {
-                month: 'short',
-                year: 'numeric',
-              })}{' '}
-            
-            </div>
+            {profile.createdAt && (
+              <div className="profile-member-since">
+                Member since{' '}
+                {new Date(profile.createdAt).toLocaleDateString('en-IN', {
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -207,7 +225,7 @@ export default function UserProfile() {
                     {addr.isDefault && <span className="default-chip">Default</span>}
                   </strong>
                   <div style={{ color: '#6b7280', marginTop: '2px' }}>
-                    {addr.address}, {addr.city} - {addr.pin}
+                    {[addr.address, addr.street, addr.city, addr.state].filter(Boolean).join(', ')} - {addr.pin}
                   </div>
                 </div>
               ))
@@ -227,7 +245,7 @@ export default function UserProfile() {
               </div>
               <span className="card-pill-tag green">ACTIVE</span>
             </div>
-            <h3>Security & Credentials</h3>
+            <h3> Account Security</h3>
             <p>
               Update your profile photo, verify a new email address with OTP, or change your
               account password anytime.

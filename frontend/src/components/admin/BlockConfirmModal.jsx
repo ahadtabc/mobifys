@@ -1,51 +1,68 @@
-import { AlertTriangle, ShieldCheck, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { Ban, ShieldCheck } from 'lucide-react';
 import './BlockConfirmModal.css';
 
 export default function BlockConfirmModal({ user, loading, onClose, onConfirm }) {
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !loading) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [user, loading, onClose]);
+
   if (!user) return null;
 
   const isBlocking = !user.isBlocked;
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal-box">
-        <div className="modal-header">
-          <div className="modal-title-group">
-            <div className={`modal-icon ${isBlocking ? 'danger' : 'success'}`}>
-              {isBlocking ? <AlertTriangle size={20} /> : <ShieldCheck size={20} />}
-            </div>
-            <div>
-              <h3>{isBlocking ? `Block ${user.name}?` : `Unblock ${user.name}?`}</h3>
-              <p>{user.email}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="modal-close-btn">
-            <X size={18} />
-          </button>
+    <div
+      className="block-modal-backdrop"
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !loading) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="block-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="block-modal-title"
+        aria-describedby="block-modal-description"
+      >
+        <div className="block-modal-icon">
+          {isBlocking ? <Ban size={23} /> : <ShieldCheck size={23} />}
         </div>
-
-        <p className="modal-body-text">
+        <h2 id="block-modal-title">
+          {isBlocking ? `Block ${user.name}?` : `Unblock ${user.name}?`}
+        </h2>
+        <p id="block-modal-description">
           {isBlocking
-            ? 'Blocking this customer will immediately revoke their storefront access and prevent them from logging in or placing orders until unblocked.'
-            : 'Unblocking this customer will restore their full access to sign in, manage their profile, and place orders on Mobifys.'}
+            ? 'This user will no longer be able to sign in or place orders.'
+            : 'This user will regain access to sign in and place orders.'}
         </p>
-
-        <div className="modal-footer">
+        <div className="block-modal-actions">
           <button
             type="button"
+            className="block-modal-cancel"
             onClick={onClose}
             disabled={loading}
-            className="btn-modal-cancel"
           >
             Cancel
           </button>
           <button
             type="button"
+            className="block-modal-confirm"
             onClick={onConfirm}
             disabled={loading}
-            className={`btn-modal-confirm ${isBlocking ? 'danger' : 'success'}`}
           >
-            {loading ? 'Processing...' : isBlocking ? 'Yes, Block User' : 'Yes, Unblock User'}
+            {loading ? 'Processing...' : isBlocking ? 'Block' : 'Unblock'}
           </button>
         </div>
       </div>

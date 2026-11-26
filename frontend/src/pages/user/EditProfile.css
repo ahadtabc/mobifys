@@ -52,20 +52,6 @@
   color: #cbd5e1;
 }
 
-.breadcrumb-bar {
-  font-size: 12px;
-  color: var(--text-light);
-}
-
-.breadcrumb-bar a:hover {
-  color: var(--text-dark);
-}
-
-.breadcrumb-bar span {
-  color: var(--primary);
-  font-weight: 600;
-}
-
 @media (max-width: 480px) {
   .edit-profile-breadcrumb ol {
     gap: 2px;
@@ -240,9 +226,13 @@
 }
 
 .edit-profile-confirm-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-width: 118px;
   min-height: 40px;
-  padding: 0 13px;
+  padding: 0 18px;
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
@@ -329,46 +319,48 @@
 
 .edit-password-input-wrap {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .edit-password-input {
-  padding-right: 44px;
+  padding-right: 40px;
 }
 
 .edit-password-toggle {
   position: absolute;
-  z-index: 1;
-  top: 50%;
   right: 12px;
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #374151;
   cursor: pointer;
-  transform: translateY(-50%);
 }
 
 .edit-password-toggle:hover {
-  border-color: #cbd5e1;
-  background: #f9fafb;
-  color: var(--text-dark);
-}
-
-.edit-password-toggle svg {
-  display: block;
-  flex-shrink: 0;
+  color: #4b5563;
 }
 
 .edit-password-toggle:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+.edit-password-rules-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.edit-password-rules-row span.met {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .email-change-box {
@@ -390,6 +382,78 @@
 .inline-action-row input {
   flex: 1;
   min-width: 200px;
+}
+
+.email-otp-verify-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.email-otp-verify-row .otp-inputs {
+  width: auto;
+}
+
+.email-step-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.email-step-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.email-step-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.email-verified-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.email-verified-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.email-restart-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.email-restart-btn:hover {
+  color: var(--text-dark);
 }
 
 .btn-secondary-outline {
@@ -433,4 +497,45 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .edit-profile-container {
+    padding: 20px 16px 48px;
+    gap: 18px;
+  }
+
+  .edit-section-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .two-col-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-action-row input {
+    min-width: 0;
+  }
+
+  .email-otp-verify-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .email-otp-verify-row .otp-inputs {
+    width: 100%;
+  }
+
+  .edit-bottom-bar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .edit-bottom-bar a,
+  .edit-bottom-bar button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
 }

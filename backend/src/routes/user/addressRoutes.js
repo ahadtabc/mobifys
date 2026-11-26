@@ -5,11 +5,11 @@ import {
   updateAddress,
   deleteAddress,
 } from '../../controllers/user/addressController.js';
-import { protect } from '../../middlewares/authMiddleware.js';
+import { protectUser } from '../../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protectUser);
 
 router.get('/', getAddresses);
 router.post('/', addAddress);

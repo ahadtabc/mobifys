@@ -97,7 +97,7 @@
 
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 24px;
 }
 
@@ -155,4 +155,26 @@
   color: var(--primary);
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .details-header-card,
+  .info-card {
+    padding: 18px;
+  }
+
+  .details-identity {
+    align-items: flex-start;
+  }
+
+  .details-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .btn-back-users,
+  .btn-toggle-status {
+    flex: 1;
+    justify-content: center;
+  }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, X, RotateCw, Eye, Ban, CheckCircle } from 'lucide-react';
+import { Search, X, RotateCw, Eye, Ban, CheckCircle, Users, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import BlockConfirmModal from '../../components/admin/BlockConfirmModal';
@@ -19,33 +19,64 @@ export default function CustomersList() {
     showingFrom: 0,
     showingTo: 0,
   });
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    blocked: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
+    const { data } = await axiosInstance.get('/admin/users', {
+      params: {
+        search: appliedSearch,
+        status: statusFilter,
+        page,
+        limit: 10,
+      },
+    });
+    return data;
+  }, [appliedSearch, statusFilter, page]);
+
+  const applyCustomersResponse = useCallback((data) => {
+    setUsers(data.users);
+    setPagination(data.pagination);
+    if (data.stats) setStats(data.stats);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchUsers()
+      .then((data) => {
+        if (active) applyCustomersResponse(data);
+      })
+      .catch((err) => {
+        if (active) {
+          toast.error(err.response?.data?.message || 'Failed to load users');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fetchUsers, applyCustomersResponse]);
+
+  const handleRefresh = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get('/admin/users', {
-        params: {
-          search: appliedSearch,
-          status: statusFilter,
-          page,
-          limit: 10,
-        },
-      });
-      setUsers(data.users);
-      setPagination(data.pagination);
+      const data = await fetchUsers();
+      applyCustomersResponse(data);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to load customers');
+      toast.error(err.response?.data?.message || 'Failed to refresh users');
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, statusFilter, page]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -68,11 +99,14 @@ export default function CustomersList() {
       );
       toast.success(data.message);
       setSelectedUser(null);
-      fetchUsers();
+      setLoading(true);
+      const refreshed = await fetchUsers();
+      applyCustomersResponse(refreshed);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
     } finally {
       setActionLoading(false);
+      setLoading(false);
     }
   };
 
@@ -87,10 +121,63 @@ export default function CustomersList() {
   return (
     <div className="customers-page">
       <div className="page-header">
-        <h1>Customers</h1>
+        <h1>Users</h1>
         <p>
-          Manage registered customers, search accounts, and control access (sorted latest first).
+          Manage registered users, search accounts, and control access (sorted latest first).
         </p>
+      </div>
+
+      <div className="customer-stats-grid">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('all');
+            setPage(1);
+          }}
+          className={`customer-stat-card ${statusFilter === 'all' ? 'is-selected' : ''}`}
+        >
+          <div className="stat-icon-box total">
+            <Users size={18} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label">Total Users</span>
+            <strong className="stat-value">{stats.total.toLocaleString('en-IN')}</strong>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('active');
+            setPage(1);
+          }}
+          className={`customer-stat-card ${statusFilter === 'active' ? 'is-selected' : ''}`}
+        >
+          <div className="stat-icon-box active">
+            <UserCheck size={18} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label">Active Users</span>
+            <strong className="stat-value">{stats.active.toLocaleString('en-IN')}</strong>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('blocked');
+            setPage(1);
+          }}
+          className={`customer-stat-card ${statusFilter === 'blocked' ? 'is-selected' : ''}`}
+        >
+          <div className="stat-icon-box blocked">
+            <Ban size={18} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label">Blocked Users</span>
+            <strong className="stat-value">{stats.blocked.toLocaleString('en-IN')}</strong>
+          </div>
+        </button>
       </div>
 
       <div className="toolbar-card">
@@ -128,17 +215,17 @@ export default function CustomersList() {
             }}
             className="status-select"
           >
-            <option value="all">All Statuses</option>
-            <option value="active">Active Only</option>
-            <option value="blocked">Blocked Only</option>
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
           </select>
 
-          <button type="button" onClick={fetchUsers} title="Refresh" className="btn-refresh">
+          <button type="button" onClick={handleRefresh} title="Refresh" className="btn-refresh">
             <RotateCw size={15} />
           </button>
         </div>
 
-        <div className="sort-hint">Showing latest registered accounts first</div>
+        <div className="sort-hint">Sort By : Newest First</div>
       </div>
 
       <div className="table-card">
@@ -157,13 +244,13 @@ export default function CustomersList() {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="table-empty-cell">
-                    Loading customers...
+                    Loading users...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="table-empty-cell">
-                    No customers found matching your search.
+                    No users found matching your search.
                   </td>
                 </tr>
               ) : (
@@ -212,7 +299,7 @@ export default function CustomersList() {
                     <td>
                       <div className="action-buttons">
                         <Link
-                          to={`/admin/customers/${user._id}`}
+                          to={`/admin/users/${user._id}`}
                           title="View Details"
                           className="icon-action-btn"
                         >

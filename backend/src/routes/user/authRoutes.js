@@ -8,10 +8,13 @@ import {
   forgotUserPassword,
   resetUserPassword,
   getUserMe,
+  refreshUserToken,
   logoutUser,
 } from '../../controllers/user/authController.js';
-import { protect } from '../../middlewares/authMiddleware.js';
-import generateToken from '../../utils/generateToken.js';
+import { protectUser } from '../../middlewares/authMiddleware.js';
+import issueAuthTokens from '../../services/tokenService.js';
+import asyncHandler from '../../utils/asyncHandler.js';
+import { env } from '../../config/env.js';
 
 const router = express.Router();
 
@@ -19,22 +22,27 @@ router.post('/signup', signupUser);
 router.post('/verify-signup-otp', verifySignupOtp);
 router.post('/resend-otp', resendUserOtp);
 router.post('/login', loginUser);
+router.post('/refresh', refreshUserToken);
 router.post('/forgot-password', forgotUserPassword);
 router.post('/reset-password', resetUserPassword);
-router.get('/me', protect, getUserMe);
+router.get('/me', protectUser, getUserMe);
 router.post('/logout', logoutUser);
 
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
+router.get(
+  '/google',
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+);
+
 router.get(
   '/google/callback',
   passport.authenticate('google', {
     session: false,
-    failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=sso_failed`,
+    failureRedirect: `${env.clientUrl}/login?error=sso_failed`,
   }),
-  (req, res) => {
-    generateToken(res, req.user._id, req.user.role, true);
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/`);
-  }
+  asyncHandler(async (req, res) => {
+    await issueAuthTokens({ req, res, user: req.user, keepSignedIn: true });
+    res.redirect(`${env.clientUrl}/`);
+  })
 );
 
 export default router;

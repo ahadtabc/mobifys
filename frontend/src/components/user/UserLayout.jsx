@@ -27,6 +27,7 @@ import './UserLayout.css';
 export default function UserLayout() {
   const { user } = useSelector((state) => state.auth);
   const [defaultAddress, setDefaultAddress] = useState(null);
+  const displayedAddress = user?._id ? defaultAddress : null;
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -46,7 +47,6 @@ export default function UserLayout() {
 
   useEffect(() => {
     if (!user?._id) {
-      setDefaultAddress(null);
       return undefined;
     }
 
@@ -169,14 +169,14 @@ export default function UserLayout() {
             <Link
               to={user ? '/profile/addresses' : '/login'}
               className="store-deliver-box"
-              title={defaultAddress ? `${defaultAddress.address}, ${defaultAddress.city} ${defaultAddress.pin}` : 'Set delivery address'}
+              title={displayedAddress ? `${[displayedAddress.address, displayedAddress.street, displayedAddress.city, displayedAddress.state].filter(Boolean).join(', ')} ${displayedAddress.pin}` : 'Set delivery address'}
             >
               <MapPin size={16} color="#ff5722" />
               <div>
                 <div className="store-deliver-label">DELIVER TO</div>
                 <div className="store-deliver-city">
-                  {defaultAddress
-                    ? `${defaultAddress.city} · ${defaultAddress.pin}`
+                  {displayedAddress
+                    ? `${displayedAddress.city} · ${displayedAddress.pin}`
                     : user
                       ? 'Add delivery address'
                       : 'Set delivery location'}
@@ -308,7 +308,7 @@ export default function UserLayout() {
 
               <Link to="/" className="header-icon-btn header-cart-btn">
                 <div style={{ position: 'relative', display: 'flex' }}>
-                  <ShoppingCart size={32} />
+                  <ShoppingCart size={20} />
                   <span className="icon-count-badge">0</span>
                 </div>
                 <span>Cart</span>
@@ -336,6 +336,7 @@ export default function UserLayout() {
         </nav>
       </header>
 
+      {/* Logout confirmation modal */}
       {isLogoutModalOpen && (
         <div
           className="account-logout-backdrop"
@@ -372,7 +373,6 @@ export default function UserLayout() {
                 onClick={handleLogout}
                 disabled={isLoggingOut}
               >
-                <LogOut size={15} />
                 {isLoggingOut ? 'Signing out...' : 'Sign out'}
               </button>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Plus, Edit3, Trash2, CheckCircle2, User, MapPin } from 'lucide-react';
+import { Plus, Edit3, Trash2, CheckCircle2, User, MapPin, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import './ManageAddresses.css';
@@ -8,39 +8,65 @@ import './ManageAddresses.css';
 export default function ManageAddresses() {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchAddresses = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axiosInstance.get('/user/addresses');
-      setAddresses(data.addresses);
-    } catch {
-      toast.error('Failed to load addresses');
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await axiosInstance.get('/user/addresses');
+    setAddresses(data.addresses);
   };
 
   useEffect(() => {
-    fetchAddresses();
+    let active = true;
+    axiosInstance
+      .get('/user/addresses')
+      .then(({ data }) => {
+        if (active) setAddresses(data.addresses);
+      })
+      .catch(() => {
+        if (active) toast.error('Failed to load addresses');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this address?')) return;
+  useEffect(() => {
+    if (!deleteTarget) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !deleting) {
+        setDeleteTarget(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [deleteTarget, deleting]);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const { data } = await axiosInstance.delete(`/user/addresses/${id}`);
+      setDeleting(true);
+      const { data } = await axiosInstance.delete(`/user/addresses/${deleteTarget._id}`);
       toast.success(data.message);
+      setDeleteTarget(null);
       window.dispatchEvent(new Event('addresses-updated'));
-      fetchAddresses();
+      await fetchAddresses();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Delete failed');
+    } finally {
+      setDeleting(false);
     }
   };
 
   const handleSetDefault = async (addr) => {
     try {
       const { data } = await axiosInstance.put(`/user/addresses/${addr._id}`, {
-        ...addr,
         isDefault: true,
       });
       toast.success(data.message);
@@ -59,6 +85,9 @@ export default function ManageAddresses() {
         </NavLink>
         <NavLink to="/profile/addresses" className="profile-tab-link active">
           <MapPin size={14} /> Addresses ({addresses.length})
+        </NavLink>
+        <NavLink to="/profile/edit" className="profile-tab-link">
+          <ShieldCheck size={14} /> Account Security
         </NavLink>
       </div>
 
@@ -105,9 +134,11 @@ export default function ManageAddresses() {
                   {addr.isDefault && <span className="default-node-badge">● Default Address</span>}
                 </div>
 
-                <div className="address-street">{addr.address}</div>
+                <div className="address-street">
+                  {[addr.address, addr.street].filter(Boolean).join(', ')}
+                </div>
                 <div className="address-city-pin">
-                  {addr.city} — {addr.pin}
+                  {[addr.city, addr.state].filter(Boolean).join(', ')} — {addr.pin}
                 </div>
                 <div className="address-phone">Phone: {addr.phone}</div>
               </div>
@@ -119,7 +150,7 @@ export default function ManageAddresses() {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => handleDelete(addr._id)}
+                    onClick={() => setDeleteTarget(addr)}
                     title="Delete address"
                     className="btn-addr-delete"
                   >
@@ -152,6 +183,52 @@ export default function ManageAddresses() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="address-delete-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !deleting) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
+          <div
+            className="address-delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-address-title"
+            aria-describedby="delete-address-description"
+          >
+            <div className="address-delete-icon">
+              <Trash2 size={23} />
+            </div>
+            <h2 id="delete-address-title">Delete address?</h2>
+            <p id="delete-address-description">
+              Remove your <strong>{deleteTarget.label}</strong> address (
+              {[deleteTarget.address, deleteTarget.city].filter(Boolean).join(', ')})?
+            </p>
+            <div className="address-delete-actions">
+              <button
+                type="button"
+                className="address-delete-cancel"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="address-delete-confirm"
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
