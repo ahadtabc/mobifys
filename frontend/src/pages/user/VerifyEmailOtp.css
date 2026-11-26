@@ -1,0 +1,58 @@
+@import './UserLogin.css';
+
+.auth-badge-square {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.otp-six-input {
+  width: 100%;
+  text-align: center;
+  letter-spacing: 0.6em;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: #f9fafb;
+  color: var(--text-dark);
+}
+
+.otp-six-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: #ffffff;
+}
+
+.otp-resend-line {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.otp-resend-line button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.verified-ring-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid var(--primary);
+  background-color: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+}

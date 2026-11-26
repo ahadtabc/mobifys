@@ -1,122 +1,150 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import axiosInstance from './api/axiosInstance';
+import { setAdmin, setUser } from './redux/slices/authSlice';
 
-function App() {
-  const [count, setCount] = useState(0)
+// User Components & Pages
+import UserLayout from './components/user/UserLayout';
+import HomePage from './pages/user/HomePage';
+import UserLogin from './pages/user/UserLogin';
+import UserSignup from './pages/user/UserSignup';
+import VerifyEmailOtp from './pages/user/VerifyEmailOtp';
+import UserForgotPassword from './pages/user/UserForgotPassword';
+import UserProfile from './pages/user/UserProfile';
+import UserComingSoon from './pages/user/UserComingSoon';
+import EditProfile from './pages/user/EditProfile';
+import ManageAddresses from './pages/user/ManageAddresses';
+import AddressFormPage from './pages/user/AddressFormPage';
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+// Admin Components & Pages
+import AdminLayout from './components/admin/AdminLayout';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminForgotPassword from './pages/admin/AdminForgotPassword';
+import UsersList from './pages/admin/UsersList';
+import UserDetails from './pages/admin/UserDetails';
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function ProtectedUserRoute({ children }) {
+  const { user } = useSelector((state) => state.auth);
+  return user ? children : <Navigate to="/login" replace />;
 }
 
-export default App
+function ProtectedAdminRoute({ children }) {
+  const { admin } = useSelector((state) => state.auth);
+  return admin ? children : <Navigate to="/admin/login" replace />;
+}
+
+function LegacyUserDetailsRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/admin/users/${id}`} replace />;
+}
+
+export default function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    axiosInstance
+      .get('/user/auth/me')
+      .then((res) => dispatch(setUser(res.data.user)))
+      .catch(() => {});
+
+    axiosInstance
+      .get('/admin/auth/me')
+      .then((res) => dispatch(setAdmin(res.data.admin)))
+      .catch(() => {});
+  }, [dispatch]);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* User Storefront Routes */}
+        <Route path="/" element={<UserLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="login" element={<UserLogin />} />
+          <Route path="signup" element={<UserSignup />} />
+          <Route path="verify-otp" element={<VerifyEmailOtp />} />
+          <Route path="forgot-password" element={<UserForgotPassword />} />
+
+          {/* Protected User Profile & Address Routes */}
+          <Route
+            path="profile"
+            element={
+              <ProtectedUserRoute>
+                <UserProfile />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/orders"
+            element={
+              <ProtectedUserRoute>
+                <UserComingSoon title="My Orders" />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/wishlist"
+            element={
+              <ProtectedUserRoute>
+                <UserComingSoon title="My Wishlist" />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/edit"
+            element={
+              <ProtectedUserRoute>
+                <EditProfile />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/addresses"
+            element={
+              <ProtectedUserRoute>
+                <ManageAddresses />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/addresses/new"
+            element={
+              <ProtectedUserRoute>
+                <AddressFormPage />
+              </ProtectedUserRoute>
+            }
+          />
+          <Route
+            path="profile/addresses/edit/:id"
+            element={
+              <ProtectedUserRoute>
+                <AddressFormPage />
+              </ProtectedUserRoute>
+            }
+          />
+        </Route>
+
+        {/* Admin Console Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedAdminRoute>
+              <AdminLayout />
+            </ProtectedAdminRoute>
+          }
+        >
+          <Route index element={<Navigate to="users" replace />} />
+          <Route path="dashboard" element={<div>Dashboard Overview</div>} />
+          <Route path="users" element={<UsersList />} />
+          <Route path="users/:id" element={<UserDetails />} />
+          <Route path="customers" element={<Navigate to="/admin/users" replace />} />
+          <Route path="customers/:id" element={<LegacyUserDetailsRedirect />} />
+          <Route path="*" element={<div>Module coming soon</div>} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}

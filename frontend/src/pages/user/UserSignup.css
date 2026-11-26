@@ -1,0 +1,28 @@
+@import './UserLogin.css';
+
+.password-rules-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-light);
+  margin-top: 6px;
+}
+
+.password-rules-row span.met {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.terms-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.terms-check-row input {
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
