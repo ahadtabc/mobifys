@@ -1,16 +1,33 @@
 import { useRef } from 'react';
 import './OtpInput.css';
 
-export default function OtpInput({ value, onChange, disabled = false, label }) {
+export default function OtpInput({ value = '', onChange, disabled = false, label }) {
   const inputRefs = useRef([]);
-  const digits = Array.from({ length: 6 }, (_, index) => value[index] || '');
+  const cleanValue = String(value).replace(/\D/g, '').slice(0, 6);
+  const digits = Array.from({ length: 6 }, (_, index) => cleanValue[index] || '');
 
   const updateDigits = (nextDigits) => {
     onChange(nextDigits.join('').replace(/\D/g, '').slice(0, 6));
   };
 
   const handleChange = (index, rawValue) => {
-    const digit = rawValue.replace(/\D/g, '').slice(-1);
+    const cleaned = rawValue.replace(/\D/g, '');
+
+    if (cleaned.length > 1) {
+      const nextDigits = [...digits];
+      cleaned
+        .slice(0, 6 - index)
+        .split('')
+        .forEach((char, offset) => {
+          nextDigits[index + offset] = char;
+        });
+      updateDigits(nextDigits);
+      const nextFocus = Math.min(index + cleaned.length, 5);
+      inputRefs.current[nextFocus]?.focus();
+      return;
+    }
+
+    const digit = cleaned.slice(-1);
     const nextDigits = [...digits];
     nextDigits[index] = digit;
     updateDigits(nextDigits);
@@ -22,6 +39,10 @@ export default function OtpInput({ value, onChange, disabled = false, label }) {
 
   const handleKeyDown = (index, event) => {
     if (event.key === 'Backspace' && !digits[index] && index > 0) {
+      event.preventDefault();
+      const nextDigits = [...digits];
+      nextDigits[index - 1] = '';
+      updateDigits(nextDigits);
       inputRefs.current[index - 1]?.focus();
     }
 
@@ -62,7 +83,7 @@ export default function OtpInput({ value, onChange, disabled = false, label }) {
           inputMode="numeric"
           pattern="[0-9]*"
           autoComplete={index === 0 ? 'one-time-code' : 'off'}
-          maxLength={1}
+          maxLength={6}
           value={digit}
           disabled={disabled}
           aria-label={`Digit ${index + 1} of 6`}

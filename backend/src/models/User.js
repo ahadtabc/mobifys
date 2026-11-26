@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    passwordChangedAt: {
+      type: Date,
+      default: null,
+    },
     walletBalance: {
       type: Number,
       default: 0,
@@ -69,6 +73,9 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userSchema.index({ role: 1, isBlocked: 1, createdAt: -1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
 
 userSchema.pre('save', async function () {
   if (!this.referralCode) {

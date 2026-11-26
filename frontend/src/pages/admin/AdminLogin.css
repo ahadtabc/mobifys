@@ -33,10 +33,10 @@
 
 .admin-brand-title {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-dark);
   letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -215,4 +215,22 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+@media (max-width: 480px) {
+  .admin-auth-header {
+    padding: 14px 16px;
+  }
+
+  .admin-brand-subtitle {
+    font-size: 10px;
+  }
+
+  .admin-auth-main {
+    padding: 24px 14px;
+  }
+
+  .admin-auth-card {
+    padding: 24px 18px;
+  }
 }

@@ -1,67 +1,7 @@
-.account-coming-soon-page {
-  min-height: 420px;
-  display: grid;
-  place-items: center;
-  padding: 48px 24px;
-}
-
-.account-coming-soon-card {
-  width: 100%;
-  max-width: 440px;
-  padding: 36px 28px;
-  border: 1px solid var(--border-color);
-  border-radius: 22px;
-  background: #ffffff;
-  text-align: center;
-  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.07);
-}
-
-.account-coming-soon-icon {
-  width: 64px;
-  height: 64px;
-  display: grid;
-  place-items: center;
-  margin: 0 auto 18px;
-  border-radius: 20px;
-  background: var(--primary-light);
-  color: var(--primary);
-}
-
-.account-coming-soon-label {
-  color: var(--primary);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.account-coming-soon-card h1 {
-  margin-top: 8px;
-  color: var(--text-dark);
-  font-size: 24px;
-  font-weight: 750;
-}
-
-.account-coming-soon-card p {
-  margin-top: 8px;
+.user-coming-soon {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  font-size: 14px;
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.account-coming-soon-back {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 24px;
-  padding: 0 16px;
-  border-radius: 11px;
-  background: var(--primary);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.account-coming-soon-back:hover {
-  background: var(--primary-hover);
 }

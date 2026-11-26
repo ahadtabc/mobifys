@@ -15,13 +15,23 @@ const addressSchema = new mongoose.Schema(
     },
     address: {
       type: String,
-      required: [true, 'Street address is required'],
+      required: [true, 'Flat / House / Building is required'],
       trim: true,
+    },
+    street: {
+      type: String,
+      trim: true,
+      default: '',
     },
     city: {
       type: String,
       required: [true, 'City is required'],
       trim: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: '',
     },
     pin: {
       type: String,
@@ -45,6 +55,8 @@ const addressSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+addressSchema.index({ userId: 1, status: 1, isDefault: -1, createdAt: -1 });
 
 const Address = mongoose.model('Address', addressSchema);
 export default Address;

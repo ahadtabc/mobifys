@@ -6,16 +6,17 @@ import {
   Save,
   Mail,
   Lock,
-  ArrowLeft,
   Trash2,
   Home,
   ChevronRight,
   Eye,
   EyeOff,
+  CheckCircle2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setUser } from '../../redux/slices/authSlice';
+import OtpInput from '../../components/OtpInput';
 import './EditProfile.css';
 
 export default function EditProfile() {
@@ -29,7 +30,12 @@ export default function EditProfile() {
   const [showSaveProfileModal, setShowSaveProfileModal] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // Email Change with OTP
+  // Email Change with 2-Step OTP (1: Current Email OTP, 2: New Email OTP)
+  const [currentEmailInput, setCurrentEmailInput] = useState('');
+  const [currentEmailOtpSent, setCurrentEmailOtpSent] = useState(false);
+  const [currentEmailOtp, setCurrentEmailOtp] = useState('');
+  const [currentEmailVerified, setCurrentEmailVerified] = useState(false);
+
   const [newEmail, setNewEmail] = useState('');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState('');
@@ -44,6 +50,13 @@ export default function EditProfile() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const hasMinMaxLen = passwords.newPassword.length >= 8 && passwords.newPassword.length <= 64;
+  const hasUpperLower =
+    /[a-z]/.test(passwords.newPassword) && /[A-Z]/.test(passwords.newPassword);
+  const hasNumber = /[0-9]/.test(passwords.newPassword);
+  const hasSymbol = /[^A-Za-z0-9\s]/.test(passwords.newPassword);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -109,7 +122,49 @@ export default function EditProfile() {
     }
   };
 
-  // Step 1: Request OTP for New Email
+  // Step 1a: Send OTP to Current Registered Email
+  const handleSendCurrentEmailOtp = async () => {
+    if (!currentEmailInput.trim()) {
+      return toast.error('Enter your current registered email address');
+    }
+    try {
+      setEmailLoading(true);
+      const { data } = await axiosInstance.post('/user/profile/request-current-email-otp', {
+        currentEmail: currentEmailInput,
+      });
+      toast.success(data.message);
+      setCurrentEmailOtp('');
+      setCurrentEmailOtpSent(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send verification OTP');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  // Step 1b: Verify Current Email OTP -> Unlock New Email Step
+  const handleVerifyCurrentEmail = async () => {
+    if (currentEmailOtp.trim().length !== 6) {
+      return toast.error('Enter the 6-digit OTP sent to your current email');
+    }
+    try {
+      setEmailLoading(true);
+      const { data } = await axiosInstance.post('/user/profile/verify-current-email', {
+        currentEmail: currentEmailInput,
+        otp: currentEmailOtp,
+      });
+      toast.success(data.message);
+      setCurrentEmailVerified(true);
+      setCurrentEmailOtp('');
+      setCurrentEmailOtpSent(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Current email verification failed');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  // Step 2a: Request OTP for New Email
   const handleSendEmailOtp = async () => {
     if (!newEmail.trim()) return toast.error('Enter the new email address');
     try {
@@ -118,6 +173,7 @@ export default function EditProfile() {
         newEmail,
       });
       toast.success(data.message);
+      setEmailOtp('');
       setEmailOtpSent(true);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send verification OTP');
@@ -126,9 +182,11 @@ export default function EditProfile() {
     }
   };
 
-  // Step 2: Verify OTP & Update Email
+  // Step 2b: Verify New Email OTP & Update Email
   const handleVerifyEmailChange = async () => {
-    if (!emailOtp.trim()) return toast.error('Enter the 6-digit OTP sent to your new email');
+    if (emailOtp.trim().length !== 6) {
+      return toast.error('Enter the 6-digit OTP sent to your new email');
+    }
     try {
       setEmailLoading(true);
       const { data } = await axiosInstance.post('/user/profile/verify-email-change', {
@@ -136,7 +194,14 @@ export default function EditProfile() {
         otp: emailOtp,
       });
       toast.success(data.message);
+      if (data.user) {
+        dispatch(setUser(data.user));
+      }
       setCurrentEmail(data.email);
+      setCurrentEmailInput('');
+      setCurrentEmailOtp('');
+      setCurrentEmailOtpSent(false);
+      setCurrentEmailVerified(false);
       setNewEmail('');
       setEmailOtp('');
       setEmailOtpSent(false);
@@ -145,6 +210,16 @@ export default function EditProfile() {
     } finally {
       setEmailLoading(false);
     }
+  };
+
+  const handleRestartEmailChange = () => {
+    setCurrentEmailInput('');
+    setCurrentEmailOtp('');
+    setCurrentEmailOtpSent(false);
+    setCurrentEmailVerified(false);
+    setNewEmail('');
+    setEmailOtp('');
+    setEmailOtpSent(false);
   };
 
   // Change Password
@@ -264,17 +339,14 @@ export default function EditProfile() {
           </div>
         </div>
 
-        <div className="edit-bottom-bar">
-          <Link to="/profile" className="btn-secondary-outline">
-            <ArrowLeft size={13} style={{ verticalAlign: 'middle' }} /> Discard Changes
-          </Link>
+        <div className="edit-bottom-bar" style={{ justifyContent: 'flex-end' }}>
           <button type="submit" disabled={savingProfile} className="btn-orange-action">
             <Save size={14} /> {savingProfile ? 'Saving...' : 'Save Profile Changes'}
           </button>
         </div>
       </form>
 
-      {/* Section 2: Email Edit with OTP Verification */}
+      {/* Section 2: Two-Step Email Edit with OTP Verification */}
       <div className="edit-section-card">
         <div>
           <h2>Email Address Verification</h2>
@@ -284,47 +356,128 @@ export default function EditProfile() {
         </div>
 
         <div className="email-change-box">
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>
-            <Mail size={13} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-            Change Email Address (Requires OTP Verification)
-          </label>
-          <div className="inline-action-row">
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="Enter new email address"
-              className="edit-input"
-            />
-            <button
-              type="button"
-              onClick={handleSendEmailOtp}
-              disabled={emailLoading}
-              className="btn-secondary-outline"
-            >
-              {emailLoading ? 'Sending...' : 'Send Verification OTP'}
-            </button>
-          </div>
+          {!currentEmailVerified ? (
+            <>
+              <div className="email-step-header">
+                <span className="email-step-badge">Step 1 of 2</span>
+                <label className="email-step-title">
+                  <Mail size={13} />
+                  Verify Your Current Registered Email
+                </label>
+              </div>
+              <div className="inline-action-row">
+                <input
+                  type="email"
+                  value={currentEmailInput}
+                  onChange={(e) => {
+                    setCurrentEmailInput(e.target.value);
+                    if (currentEmailOtpSent) {
+                      setCurrentEmailOtpSent(false);
+                      setCurrentEmailOtp('');
+                    }
+                  }}
+                  placeholder="Enter your current registered email"
+                  className="edit-input"
+                  disabled={emailLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendCurrentEmailOtp}
+                  disabled={emailLoading}
+                  className="btn-secondary-outline"
+                >
+                  {emailLoading && !currentEmailOtpSent ? 'Sending...' : 'Send Verification OTP'}
+                </button>
+              </div>
 
-          {emailOtpSent && (
-            <div className="inline-action-row" style={{ marginTop: '6px' }}>
-              <input
-                type="text"
-                maxLength={6}
-                value={emailOtp}
-                onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="Enter 6-digit OTP"
-                className="edit-input"
-              />
-              <button
-                type="button"
-                onClick={handleVerifyEmailChange}
-                disabled={emailLoading}
-                className="btn-orange-action"
-              >
-                Verify & Update Email
-              </button>
-            </div>
+              {currentEmailOtpSent && (
+                <div className="email-otp-verify-row" style={{ marginTop: '6px' }}>
+                  <OtpInput
+                    value={currentEmailOtp}
+                    onChange={setCurrentEmailOtp}
+                    disabled={emailLoading}
+                    label="Current email 6-digit OTP"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyCurrentEmail}
+                    disabled={emailLoading || currentEmailOtp.length !== 6}
+                    className="btn-orange-action"
+                  >
+                    {emailLoading ? 'Verifying...' : 'Verify Current Email'}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="email-verified-banner">
+                <span className="email-verified-status">
+                  <CheckCircle2 size={15} />
+                  Current email verified ({currentEmail})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRestartEmailChange}
+                  disabled={emailLoading}
+                  className="email-restart-btn"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div className="email-step-header">
+                <span className="email-step-badge">Step 2 of 2</span>
+                <label className="email-step-title">
+                  <Mail size={13} />
+                  Enter & Verify Your New Email Address
+                </label>
+              </div>
+
+              <div className="inline-action-row">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => {
+                    setNewEmail(e.target.value);
+                    if (emailOtpSent) {
+                      setEmailOtpSent(false);
+                      setEmailOtp('');
+                    }
+                  }}
+                  placeholder="Enter new email address"
+                  className="edit-input"
+                  disabled={emailLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendEmailOtp}
+                  disabled={emailLoading}
+                  className="btn-secondary-outline"
+                >
+                  {emailLoading && !emailOtpSent ? 'Sending...' : 'Send Verification OTP'}
+                </button>
+              </div>
+
+              {emailOtpSent && (
+                <div className="email-otp-verify-row" style={{ marginTop: '6px' }}>
+                  <OtpInput
+                    value={emailOtp}
+                    onChange={setEmailOtp}
+                    disabled={emailLoading}
+                    label="New email 6-digit OTP"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyEmailChange}
+                    disabled={emailLoading || emailOtp.length !== 6}
+                    className="btn-orange-action"
+                  >
+                    {emailLoading ? 'Updating...' : 'Verify & Update Email'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -353,7 +506,7 @@ export default function EditProfile() {
               aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'}
               aria-pressed={showCurrentPassword}
             >
-              {showCurrentPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
@@ -364,6 +517,7 @@ export default function EditProfile() {
             <div className="edit-password-input-wrap">
               <input
                 type={showNewPassword ? 'text' : 'password'}
+                maxLength={64}
                 value={passwords.newPassword}
                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
                 placeholder="Minimum 8 characters"
@@ -376,20 +530,40 @@ export default function EditProfile() {
                 aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
                 aria-pressed={showNewPassword}
               >
-                {showNewPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
+            </div>
+            <div className="edit-password-rules-row">
+              <span className={hasMinMaxLen ? 'met' : ''}>• 8–64 chars</span>
+              <span className={hasUpperLower ? 'met' : ''}>• Upper & lower</span>
+              <span className={hasNumber ? 'met' : ''}>• Number</span>
+              <span className={hasSymbol ? 'met' : ''}>• Special char</span>
             </div>
           </div>
 
           <div className="edit-field-group">
             <label>Confirm New Password</label>
-            <input
-              type="password"
-              value={passwords.confirmPassword}
-              onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-              placeholder="Re-enter new password"
-              className="edit-input"
-            />
+            <div className="edit-password-input-wrap">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                maxLength={64}
+                value={passwords.confirmPassword}
+                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                placeholder="Re-enter new password"
+                className="edit-input edit-password-input"
+              />
+              <button
+                type="button"
+                className="edit-password-toggle"
+                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                aria-label={
+                  showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
+                }
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -477,7 +651,6 @@ export default function EditProfile() {
                 onClick={confirmSaveProfile}
                 disabled={savingProfile}
               >
-                <Save size={14} />
                 {savingProfile ? 'Saving...' : 'Save changes'}
               </button>
             </div>

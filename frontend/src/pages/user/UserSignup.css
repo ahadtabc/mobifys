@@ -1,8 +1,54 @@
 @import './UserLogin.css';
 
+.field-label-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.field-label-meta label {
+  margin-bottom: 0;
+}
+
+.field-char-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.phone-input-box .phone-country-code {
+  position: absolute;
+  left: 38px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-right: 8px;
+  border-right: 1px solid var(--border-color);
+  pointer-events: none;
+}
+
+.phone-input-box input {
+  padding-left: 78px;
+}
+
+.field-input-box.has-error input {
+  border-color: var(--danger-text);
+  background-color: #fffafa;
+}
+
+.field-error-text {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--danger-text);
+}
+
 .password-rules-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 6px;
   font-size: 10px;
   color: var(--text-light);
   margin-top: 6px;

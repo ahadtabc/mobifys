@@ -1,264 +1,138 @@
-import bcrypt from 'bcryptjs';
-import User from '../../models/User.js';
-import generateToken, { LEGACY_AUTH_COOKIE, USER_AUTH_COOKIE } from '../../utils/generateToken.js';
-import { createAndSendOtp, verifyOtpCode } from '../../services/otpService.js';
+import asyncHandler from '../../utils/asyncHandler.js';
+import { sanitizeUser } from '../../utils/serializers.js';
+import {
+  requireFields,
+  validateEmailAddress,
+  validateFullName,
+  validateIndianPhone,
+  validatePasswordPair,
+  validateStrongPassword,
+} from '../../validators/authValidator.js';
+import issueAuthTokens, {
+  revokeSessionToken,
+  rotateRefreshToken,
+} from '../../services/tokenService.js';
+import {
+  authenticateUser,
+  resendUserOtpCode,
+  resetUserPasswordWithOtp,
+  sendUserForgotPasswordOtp,
+  signupUserAccount,
+  verifyUserSignupOtp,
+} from '../../services/userAuthService.js';
 
-export const signupUser = async (req, res, next) => {
-  try {
-    const { name, email, phone, password, confirmPassword } = req.body;
+export const signupUser = asyncHandler(async (req, res) => {
+  const { name, email, phone, password, confirmPassword } = req.body;
+  requireFields([name, email, phone, password, confirmPassword]);
 
-    if (!name || !email || !password || !confirmPassword) {
-      return res.status(400).json({ success: false, message: 'All required fields must be filled' });
-    }
+  const cleanName = validateFullName(name);
+  const cleanEmail = validateEmailAddress(email);
+  const formattedPhone = validateIndianPhone(phone);
+  validateStrongPassword(password, confirmPassword);
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({ success: false, message: 'Passwords do not match' });
-    }
+  const { email: registeredEmail, expiresAt } = await signupUserAccount({
+    name: cleanName,
+    email: cleanEmail,
+    phone: formattedPhone,
+    password,
+  });
 
-    if (password.length < 8) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
-    }
+  res.status(200).json({
+    success: true,
+    message: `Verification OTP sent to ${registeredEmail}`,
+    email: registeredEmail,
+    expiresAt,
+  });
+});
 
-    const cleanEmail = email.toLowerCase().trim();
-    const existingUser = await User.findOne({ email: cleanEmail });
+export const verifySignupOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  requireFields([email, otp], 'Email and OTP are required');
 
-    if (existingUser && existingUser.status === 'active') {
-      return res.status(409).json({ success: false, message: 'Email is already registered' });
-    }
+  const user = await verifyUserSignupOtp({ email, otp });
+  await issueAuthTokens({ req, res, user, keepSignedIn: false });
 
-    const passwordHash = await bcrypt.hash(password, 10);
+  res.status(200).json({
+    success: true,
+    message: 'Account verified successfully!',
+    user: sanitizeUser(user),
+  });
+});
 
-    let user;
-    if (existingUser && existingUser.status === 'unverified') {
-      existingUser.name = name.trim();
-      existingUser.phone = phone?.trim() || '';
-      existingUser.passwordHash = passwordHash;
-      user = await existingUser.save();
-    } else {
-      user = await User.create({
-        name: name.trim(),
-        email: cleanEmail,
-        phone: phone?.trim() || '',
-        passwordHash,
-        role: 'user',
-        status: 'unverified',
-      });
-    }
+export const resendUserOtp = asyncHandler(async (req, res) => {
+  const { email, purpose } = req.body;
+  requireFields([email, purpose], 'Email and OTP purpose are required');
 
-    const { expiresAt } = await createAndSendOtp({
-      identifier: cleanEmail,
-      purpose: 'signup',
-      userId: user._id,
-    });
+  const { expiresAt } = await resendUserOtpCode({ email, purpose });
 
-    res.status(200).json({
-      success: true,
-      message: `Verification OTP sent to ${cleanEmail}`,
-      email: cleanEmail,
-      expiresAt,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: 'A new 6-digit OTP has been sent to your email',
+    expiresAt,
+  });
+});
 
-export const verifySignupOtp = async (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
-    }
+export const loginUser = asyncHandler(async (req, res) => {
+  const { email, password, rememberMe } = req.body;
+  requireFields([email, password], 'Email and password are required');
 
-    const cleanEmail = email.toLowerCase().trim();
-    await verifyOtpCode({ identifier: cleanEmail, otp: otp.trim(), purpose: 'signup' });
+  const user = await authenticateUser({ email, password });
+  await issueAuthTokens({ req, res, user, keepSignedIn: Boolean(rememberMe) });
 
-    const user = await User.findOne({ email: cleanEmail });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+  res.status(200).json({
+    success: true,
+    message: `Welcome back, ${user.name}!`,
+    user: sanitizeUser(user),
+  });
+});
 
-    user.status = 'active';
-    await user.save();
+export const forgotUserPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  requireFields([email], 'Email address is required');
 
-    generateToken(res, user._id, user.role, false);
+  const { email: cleanEmail, expiresAt } = await sendUserForgotPasswordOtp({ email });
 
-    res.status(200).json({
-      success: true,
-      message: 'Account verified successfully!',
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        profileImage: user.profileImage,
-        walletBalance: user.walletBalance,
-        referralCode: user.referralCode,
-      },
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: `Password reset OTP sent to ${cleanEmail}`,
+    expiresAt,
+  });
+});
 
-export const resendUserOtp = async (req, res, next) => {
-  try {
-    const { email, purpose } = req.body;
-    if (!email || !purpose) {
-      return res.status(400).json({ success: false, message: 'Email and OTP purpose are required' });
-    }
+export const resetUserPassword = asyncHandler(async (req, res) => {
+  const { email, otp, newPassword, confirmPassword } = req.body;
+  requireFields([email, otp, newPassword, confirmPassword], 'All fields are required');
+  validatePasswordPair(newPassword, confirmPassword);
 
-    const cleanEmail = email.toLowerCase().trim();
-    const user = await User.findOne({ email: cleanEmail, role: 'user' });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Account not found' });
-    }
+  await resetUserPasswordWithOtp({ email, otp, newPassword });
 
-    const { expiresAt } = await createAndSendOtp({
-      identifier: cleanEmail,
-      purpose,
-      userId: user._id,
-    });
+  res.status(200).json({
+    success: true,
+    message: 'Password reset successful! You can now sign in.',
+  });
+});
 
-    res.status(200).json({
-      success: true,
-      message: 'A new 6-digit OTP has been sent to your email',
-      expiresAt,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const loginUser = async (req, res, next) => {
-  try {
-    const { email, password, rememberMe } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase().trim(), role: 'user' });
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
-    }
-
-    if (user.isBlocked) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account has been blocked by Admin. Contact support.',
-      });
-    }
-
-    if (user.status === 'unverified') {
-      return res.status(403).json({
-        success: false,
-        needsVerification: true,
-        message: 'Please verify your email via OTP before signing in.',
-      });
-    }
-
-    if (!user.passwordHash) {
-      return res.status(400).json({
-        success: false,
-        message: 'This account uses Google Sign-In. Please continue with Google.',
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
-    }
-
-    generateToken(res, user._id, user.role, Boolean(rememberMe));
-
-    res.status(200).json({
-      success: true,
-      message: `Welcome back, ${user.name}!`,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        profileImage: user.profileImage,
-        walletBalance: user.walletBalance,
-        referralCode: user.referralCode,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const forgotUserPassword = async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email address is required' });
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-    const user = await User.findOne({ email: cleanEmail, role: 'user' });
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email' });
-    }
-
-    const { expiresAt } = await createAndSendOtp({
-      identifier: cleanEmail,
-      purpose: 'forgot_password',
-      userId: user._id,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: `Password reset OTP sent to ${cleanEmail}`,
-      expiresAt,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const resetUserPassword = async (req, res, next) => {
-  try {
-    const { email, otp, newPassword, confirmPassword } = req.body;
-
-    if (!email || !otp || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: 'All fields are required' });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: 'Passwords do not match' });
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-    await verifyOtpCode({ identifier: cleanEmail, otp: otp.trim(), purpose: 'forgot_password' });
-
-    const user = await User.findOne({ email: cleanEmail, role: 'user' });
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Password reset successful! You can now sign in.',
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-};
-
-export const getUserMe = async (req, res) => {
+export const getUserMe = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     user: req.user,
   });
-};
+});
 
-export const logoutUser = (req, res) => {
-  res.clearCookie(USER_AUTH_COOKIE);
-  res.clearCookie(LEGACY_AUTH_COOKIE);
+export const refreshUserToken = asyncHandler(async (req, res) => {
+  const result = await rotateRefreshToken({ req, res, scope: 'user' });
+  if (!result.ok) {
+    return res.status(result.status).json({ success: false, message: result.message });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Session refreshed',
+    user: sanitizeUser(result.user),
+  });
+});
+
+export const logoutUser = asyncHandler(async (req, res) => {
+  await revokeSessionToken(req, res, 'user');
   res.status(200).json({ success: true, message: 'Signed out successfully' });
-};
+});

@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, X, RotateCw, Ban, CheckCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, X, RotateCw, Eye, Ban, CheckCircle, Users, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import BlockConfirmModal from '../../components/admin/BlockConfirmModal';
 import './UsersList.css';
 
 export default function UsersList() {
-  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -20,33 +19,64 @@ export default function UsersList() {
     showingFrom: 0,
     showingTo: 0,
   });
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    blocked: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
+    const { data } = await axiosInstance.get('/admin/users', {
+      params: {
+        search: appliedSearch,
+        status: statusFilter,
+        page,
+        limit: 10,
+      },
+    });
+    return data;
+  }, [appliedSearch, statusFilter, page]);
+
+  const applyCustomersResponse = useCallback((data) => {
+    setUsers(data.users);
+    setPagination(data.pagination);
+    if (data.stats) setStats(data.stats);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchUsers()
+      .then((data) => {
+        if (active) applyCustomersResponse(data);
+      })
+      .catch((err) => {
+        if (active) {
+          toast.error(err.response?.data?.message || 'Failed to load users');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fetchUsers, applyCustomersResponse]);
+
+  const handleRefresh = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get('/admin/users', {
-        params: {
-          search: appliedSearch,
-          status: statusFilter,
-          page,
-          limit: 10,
-        },
-      });
-      setUsers(data.users);
-      setPagination(data.pagination);
+      const data = await fetchUsers();
+      applyCustomersResponse(data);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to load users');
+      toast.error(err.response?.data?.message || 'Failed to refresh users');
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, statusFilter, page]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -69,11 +99,14 @@ export default function UsersList() {
       );
       toast.success(data.message);
       setSelectedUser(null);
-      fetchUsers();
+      setLoading(true);
+      const refreshed = await fetchUsers();
+      applyCustomersResponse(refreshed);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
     } finally {
       setActionLoading(false);
+      setLoading(false);
     }
   };
 
@@ -86,12 +119,65 @@ export default function UsersList() {
       .slice(0, 2);
 
   return (
-    <div className="users-page">
+    <div className="customers-page">
       <div className="page-header">
         <h1>Users</h1>
         <p>
           Manage registered users, search accounts, and control access (sorted latest first).
         </p>
+      </div>
+
+      <div className="customer-stats-grid">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('all');
+            setPage(1);
+          }}
+          className={`customer-stat-card ${statusFilter === 'all' ? 'is-selected' : ''}`}
+        >
+          <div className="stat-icon-box total">
+            <Users size={18} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label">Total Users</span>
+            <strong className="stat-value">{stats.total.toLocaleString('en-IN')}</strong>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('active');
+            setPage(1);
+          }}
+          className={`customer-stat-card ${statusFilter === 'active' ? 'is-selected' : ''}`}
+        >
+          <div className="stat-icon-box active">
+            <UserCheck size={18} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label">Active Users</span>
+            <strong className="stat-value">{stats.active.toLocaleString('en-IN')}</strong>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('blocked');
+            setPage(1);
+          }}
+          className={`customer-stat-card ${statusFilter === 'blocked' ? 'is-selected' : ''}`}
+        >
+          <div className="stat-icon-box blocked">
+            <Ban size={18} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-label">Blocked Users</span>
+            <strong className="stat-value">{stats.blocked.toLocaleString('en-IN')}</strong>
+          </div>
+        </button>
       </div>
 
       <div className="toolbar-card">
@@ -129,22 +215,22 @@ export default function UsersList() {
             }}
             className="status-select"
           >
-            <option value="all">All Statuses</option>
-            <option value="active">Active Only</option>
-            <option value="blocked">Blocked Only</option>
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
           </select>
 
-          <button type="button" onClick={fetchUsers} title="Refresh" className="btn-refresh">
+          <button type="button" onClick={handleRefresh} title="Refresh" className="btn-refresh">
             <RotateCw size={15} />
           </button>
         </div>
 
-        <div className="sort-hint">Showing latest registered accounts first</div>
+        <div className="sort-hint">Sort By : Latest Registered Users First</div>
       </div>
 
       <div className="table-card">
         <div className="table-scroll">
-          <table className="users-table">
+          <table className="customers-table">
             <thead>
               <tr>
                 <th>User</th>
@@ -169,21 +255,7 @@ export default function UsersList() {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr
-                    key={user._id}
-                    className="customer-row"
-                    tabIndex={0}
-                    onClick={() => navigate(`/admin/users/${user._id}`)}
-                    onKeyDown={(event) => {
-                      if (
-                        event.target === event.currentTarget &&
-                        (event.key === 'Enter' || event.key === ' ')
-                      ) {
-                        event.preventDefault();
-                        navigate(`/admin/users/${user._id}`);
-                      }
-                    }}
-                  >
+                  <tr key={user._id}>
                     <td>
                       <div className="user-cell">
                         {user.profileImage ? (
@@ -226,12 +298,16 @@ export default function UsersList() {
 
                     <td>
                       <div className="action-buttons">
+                        <Link
+                          to={`/admin/users/${user._id}`}
+                          title="View Details"
+                          className="icon-action-btn"
+                        >
+                          <Eye size={16} />
+                        </Link>
                         <button
                           type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedUser(user);
-                          }}
+                          onClick={() => setSelectedUser(user)}
                           title={user.isBlocked ? 'Unblock User' : 'Block User'}
                           className={`icon-action-btn ${user.isBlocked ? 'unblock' : 'block'}`}
                         >

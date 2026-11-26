@@ -1,9 +1,7 @@
-import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import './src/config/env.js';
 import connectDB from './src/config/db.js';
 import User from './src/models/User.js';
-
-dotenv.config();
 
 const seedData = async () => {
   try {

@@ -200,3 +200,23 @@
   color: var(--text-muted);
   margin-top: 20px;
 }
+
+@media (max-width: 480px) {
+  .user-auth-wrapper {
+    padding: 24px 14px;
+  }
+
+  .user-auth-card {
+    padding: 26px 18px;
+    border-radius: 16px;
+  }
+
+  .user-auth-header h1 {
+    font-size: 21px;
+  }
+
+  .remember-forgot-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

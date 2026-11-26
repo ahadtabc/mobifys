@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../api/axiosInstance';
+import axiosInstance, { API_BASE_URL } from '../../api/axiosInstance';
 import { setUser } from '../../redux/slices/authSlice';
 import './UserLogin.css';
 
@@ -57,7 +57,7 @@ export default function UserLogin() {
   };
 
   const handleGoogleSSO = () => {
-    window.location.href = 'http://localhost:3001/api/user/auth/google';
+    window.location.href = `${API_BASE_URL}/user/auth/google`;
   };
 
   return (

@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Local file storage (S3 is used in production, this is only for local testing)
+uploads/
+tmp/
+
+# Build output
+dist/
+build/
+coverage/

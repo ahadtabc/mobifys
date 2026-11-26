@@ -2,8 +2,85 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../api/axiosInstance';
+import axiosInstance, { API_BASE_URL } from '../../api/axiosInstance';
 import './UserSignup.css';
+
+const NAME_MIN_LENGTH = 2;
+const NAME_MAX_LENGTH = 50;
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 64;
+
+const NAME_REGEX = /^[A-Za-z]+(?:[ .'-][A-Za-z]+)*$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/;
+
+function extractIndianDigits(rawValue) {
+  const digitsOnly = rawValue.replace(/\D/g, '');
+  if (digitsOnly.length > 10 && digitsOnly.startsWith('91')) {
+    return digitsOnly.slice(2, 12);
+  }
+  if (digitsOnly.length > 10 && digitsOnly.startsWith('0')) {
+    return digitsOnly.slice(1, 11);
+  }
+  return digitsOnly.slice(0, 10);
+}
+
+function validateSignupForm(form, agreed) {
+  const errors = {};
+  const cleanName = form.name.trim().replace(/\s+/g, ' ');
+  const cleanEmail = form.email.trim().toLowerCase();
+  const cleanPhone = form.phone.trim();
+
+  if (!cleanName) {
+    errors.name = 'Full name is required';
+  } else if (cleanName.length < NAME_MIN_LENGTH) {
+    errors.name = `Full name must be at least ${NAME_MIN_LENGTH} characters`;
+  } else if (cleanName.length > NAME_MAX_LENGTH) {
+    errors.name = `Full name must not exceed ${NAME_MAX_LENGTH} characters`;
+  } else if (!NAME_REGEX.test(cleanName)) {
+    errors.name = 'Use letters only (spaces, dots, hyphens, or apostrophes allowed)';
+  }
+
+  if (!cleanEmail) {
+    errors.email = 'Email address is required';
+  } else if (cleanEmail.length > 100 || !EMAIL_REGEX.test(cleanEmail)) {
+    errors.email = 'Enter a valid email address';
+  }
+
+  if (!cleanPhone) {
+    errors.phone = 'Indian mobile number is required';
+  } else if (!INDIAN_PHONE_REGEX.test(cleanPhone)) {
+    errors.phone = 'Enter a valid 10-digit Indian mobile number (starts with 6–9)';
+  }
+
+  if (!form.password) {
+    errors.password = 'Password is required';
+  } else if (/\s/.test(form.password)) {
+    errors.password = 'Password cannot contain spaces';
+  } else if (form.password.length < PASSWORD_MIN_LENGTH) {
+    errors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
+  } else if (form.password.length > PASSWORD_MAX_LENGTH) {
+    errors.password = `Password must not exceed ${PASSWORD_MAX_LENGTH} characters`;
+  } else if (!/[a-z]/.test(form.password) || !/[A-Z]/.test(form.password)) {
+    errors.password = 'Include both uppercase and lowercase letters';
+  } else if (!/[0-9]/.test(form.password)) {
+    errors.password = 'Include at least one number';
+  } else if (!/[^A-Za-z0-9\s]/.test(form.password)) {
+    errors.password = 'Include at least one special character';
+  }
+
+  if (!form.confirmPassword) {
+    errors.confirmPassword = 'Please re-enter your password';
+  } else if (form.confirmPassword !== form.password) {
+    errors.confirmPassword = 'Passwords do not match';
+  }
+
+  if (!agreed) {
+    errors.agreed = 'Please agree to the Terms of Service & Privacy Policy';
+  }
+
+  return errors;
+}
 
 export default function UserSignup() {
   const [form, setForm] = useState({
@@ -14,27 +91,45 @@ export default function UserSignup() {
     confirmPassword: '',
   });
   const [agreed, setAgreed] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const hasMinLen = form.password.length >= 8;
+  const hasMinMaxLen =
+    form.password.length >= PASSWORD_MIN_LENGTH && form.password.length <= PASSWORD_MAX_LENGTH;
   const hasUpperLower = /[a-z]/.test(form.password) && /[A-Z]/.test(form.password);
-  const hasNumSymbol = /[0-9!@#$%^&*]/.test(form.password);
+  const hasNumber = /[0-9]/.test(form.password);
+  const hasSymbol = /[^A-Za-z0-9\s]/.test(form.password);
+
+  const validationErrors = validateSignupForm(form, agreed);
+  const showFieldError = (field) => (touched[field] || submitted) && validationErrors[field];
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.password) {
-      return toast.error('Please fill all required fields');
-    }
-    if (!agreed) {
-      return toast.error('Please agree to the Terms of Service & Privacy Policy');
+    setSubmitted(true);
+
+    const firstError = Object.values(validationErrors)[0];
+    if (firstError) {
+      return toast.error(firstError);
     }
 
     try {
       setLoading(true);
-      const { data } = await axiosInstance.post('/user/auth/signup', form);
+      const { data } = await axiosInstance.post('/user/auth/signup', {
+        name: form.name.trim().replace(/\s+/g, ' '),
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(),
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+      });
       toast.success(data.message);
       navigate('/verify-otp', { state: { email: data.email } });
     } catch (err) {
@@ -49,15 +144,13 @@ export default function UserSignup() {
       <div className="user-auth-card">
         <div className="user-auth-header">
           <h1>Create Your Account</h1>
-          <p>
-            Explore the future of autonomous robotics with Mobifys.
-          </p>
+          <p>Explore the future of autonomous robotics with Mobifys.</p>
         </div>
 
         <div className="sso-buttons-group">
           <button
             type="button"
-            onClick={() => (window.location.href = 'http://localhost:3001/api/user/auth/google')}
+            onClick={() => (window.location.href = `${API_BASE_URL}/user/auth/google`)}
             className="btn-sso"
           >
             <svg className="sso-brand-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -72,91 +165,149 @@ export default function UserSignup() {
 
         <div className="auth-divider">OR REGISTER</div>
 
-        <form onSubmit={handleSubmit} className="user-auth-form">
+        <form onSubmit={handleSubmit} className="user-auth-form" noValidate>
           <div className="field-block">
-            <label>FULL NAME</label>
-            <div className="field-input-box">
+            <div className="field-label-meta">
+              <label htmlFor="signup-name">FULL NAME</label>
+              <span className="field-char-count">
+                {form.name.length}/{NAME_MAX_LENGTH}
+              </span>
+            </div>
+            <div className={`field-input-box ${showFieldError('name') ? 'has-error' : ''}`}>
               <User className="field-icon-left" size={16} />
               <input
+                id="signup-name"
                 type="text"
+                maxLength={NAME_MAX_LENGTH}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Your full name"
+                onBlur={() => handleBlur('name')}
+                placeholder="Your full name (2–50 letters)"
+                aria-invalid={Boolean(showFieldError('name'))}
               />
             </div>
+            {showFieldError('name') && <p className="field-error-text">{validationErrors.name}</p>}
           </div>
 
           <div className="field-block">
-            <label>EMAIL ADDRESS</label>
-            <div className="field-input-box">
+            <label htmlFor="signup-email">EMAIL ADDRESS</label>
+            <div className={`field-input-box ${showFieldError('email') ? 'has-error' : ''}`}>
               <Mail className="field-icon-left" size={16} />
               <input
+                id="signup-email"
                 type="email"
+                maxLength={100}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onBlur={() => handleBlur('email')}
                 placeholder="Your email address"
+                aria-invalid={Boolean(showFieldError('email'))}
               />
             </div>
+            {showFieldError('email') && <p className="field-error-text">{validationErrors.email}</p>}
           </div>
 
           <div className="field-block">
-            <label>MOBILE NUMBER</label>
-            <div className="field-input-box">
+            <label htmlFor="signup-phone">MOBILE NUMBER (INDIA)</label>
+            <div className={`field-input-box phone-input-box ${showFieldError('phone') ? 'has-error' : ''}`}>
               <Phone className="field-icon-left" size={16} />
+              <span className="phone-country-code">+91</span>
               <input
+                id="signup-phone"
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="9012345678"
+                onChange={(e) =>
+                  setForm({ ...form, phone: extractIndianDigits(e.target.value) })
+                }
+                onBlur={() => handleBlur('phone')}
+                placeholder="9876543210"
+                aria-invalid={Boolean(showFieldError('phone'))}
               />
             </div>
+            {showFieldError('phone') && <p className="field-error-text">{validationErrors.phone}</p>}
           </div>
 
           <div className="field-block">
-            <label>PASSWORD</label>
-            <div className="field-input-box">
+            <label htmlFor="signup-password">PASSWORD</label>
+            <div className={`field-input-box ${showFieldError('password') ? 'has-error' : ''}`}>
               <Lock className="field-icon-left" size={16} />
               <input
+                id="signup-password"
                 type={showPass ? 'text' : 'password'}
+                maxLength={PASSWORD_MAX_LENGTH}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                onBlur={() => handleBlur('password')}
                 placeholder="••••••••••••"
+                aria-invalid={Boolean(showFieldError('password'))}
               />
-              <button type="button" onClick={() => setShowPass(!showPass)} className="eye-btn">
+              <button
+                type="button"
+                onClick={() => setShowPass((prev) => !prev)}
+                className="eye-btn"
+                aria-label={showPass ? 'Hide password' : 'Show password'}
+              >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             <div className="password-rules-row">
-              <span className={hasMinLen ? 'met' : ''}>• Min 8 characters</span>
+              <span className={hasMinMaxLen ? 'met' : ''}>• 8–64 chars</span>
               <span className={hasUpperLower ? 'met' : ''}>• Upper & lower</span>
-              <span className={hasNumSymbol ? 'met' : ''}>• Number / symbol</span>
+              <span className={hasNumber ? 'met' : ''}>• Number</span>
+              <span className={hasSymbol ? 'met' : ''}>• Special char</span>
             </div>
+            {showFieldError('password') && (
+              <p className="field-error-text">{validationErrors.password}</p>
+            )}
           </div>
 
           <div className="field-block">
-            <label>RE-ENTER PASSWORD</label>
-            <div className="field-input-box">
+            <label htmlFor="signup-confirm-password">RE-ENTER PASSWORD</label>
+            <div
+              className={`field-input-box ${showFieldError('confirmPassword') ? 'has-error' : ''}`}
+            >
               <Lock className="field-icon-left" size={16} />
               <input
-                type="password"
+                id="signup-confirm-password"
+                type={showConfirmPass ? 'text' : 'password'}
+                maxLength={PASSWORD_MAX_LENGTH}
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                onBlur={() => handleBlur('confirmPassword')}
                 placeholder="••••••••••••"
+                aria-invalid={Boolean(showFieldError('confirmPassword'))}
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPass((prev) => !prev)}
+                className="eye-btn"
+                aria-label={showConfirmPass ? 'Hide confirm password' : 'Show confirm password'}
+              >
+                {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
+            {showFieldError('confirmPassword') && (
+              <p className="field-error-text">{validationErrors.confirmPassword}</p>
+            )}
           </div>
 
-          <label className="terms-check-row">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-            />
-            <span>
-              I agree to mobifys <strong>Terms of Service</strong>, <strong>Privacy Policy</strong>{' '}
-             
-            </span>
-          </label>
+          <div>
+            <label className="terms-check-row">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <span>
+                I agree to mobifys <strong>Terms of Service</strong>, <strong>Privacy Policy</strong>
+              </span>
+            </label>
+            {showFieldError('agreed') && (
+              <p className="field-error-text">{validationErrors.agreed}</p>
+            )}
+          </div>
 
           <button type="submit" disabled={loading} className="btn-user-submit">
             {loading ? 'Creating Account...' : 'Create Account'}

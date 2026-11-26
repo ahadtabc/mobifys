@@ -1,0 +1,19 @@
+# Normalize line endings so Windows and Linux contributors stay in sync.
+* text=auto eol=lf
+
+# Windows scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files are never converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary
