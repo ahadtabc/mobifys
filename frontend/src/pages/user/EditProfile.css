@@ -317,6 +317,18 @@
   background-color: #ffffff;
 }
 
+.edit-field-group.has-error .edit-input {
+  border-color: var(--danger-text);
+  background-color: #fffafa;
+}
+
+.field-error-text {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--danger-text);
+}
+
 .edit-password-input-wrap {
   position: relative;
   display: flex;

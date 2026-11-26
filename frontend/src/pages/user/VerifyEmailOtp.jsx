@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { MailCheck, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setUser } from '../../redux/slices/authSlice';
 import OtpInput from '../../components/OtpInput';
+import { otpRules, toastFirstFormError } from '../../utils/formValidation';
 import './VerifyEmailOtp.css';
 
 export default function VerifyEmailOtp() {
@@ -14,10 +16,19 @@ export default function VerifyEmailOtp() {
   const dispatch = useDispatch();
 
   const email = location.state?.email || '';
-  const [otp, setOtp] = useState('');
   const [timer, setTimer] = useState(120);
   const [verified, setVerified] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: { otp: '' },
+    mode: 'onSubmit',
+  });
+
+  const watchedOtp = useWatch({ control, name: 'otp', defaultValue: '' });
 
   useEffect(() => {
     if (!email) {
@@ -30,10 +41,8 @@ export default function VerifyEmailOtp() {
     return () => clearInterval(interval);
   }, [email, timer, verified, navigate]);
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
+  const onVerify = async ({ otp }) => {
     try {
-      setLoading(true);
       const { data } = await axiosInstance.post('/user/auth/verify-signup-otp', {
         email,
         otp,
@@ -43,8 +52,6 @@ export default function VerifyEmailOtp() {
       setVerified(true);
     } catch (err) {
       toast.error(err.response?.data?.message || 'OTP verification failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -65,7 +72,11 @@ export default function VerifyEmailOtp() {
     <div className="user-auth-wrapper">
       <div className="user-auth-card">
         {!verified ? (
-          <form onSubmit={handleVerify} className="user-auth-form">
+          <form
+            onSubmit={handleSubmit(onVerify, toastFirstFormError)}
+            className="user-auth-form"
+            noValidate
+          >
             <div className="user-auth-header">
               <div className="auth-badge-square">
                 <MailCheck size={24} />
@@ -77,10 +88,28 @@ export default function VerifyEmailOtp() {
               </p>
             </div>
 
-            <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+            <div>
+              <Controller
+                name="otp"
+                control={control}
+                rules={otpRules()}
+                render={({ field }) => (
+                  <OtpInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isSubmitting}
+                  />
+                )}
+              />
+              {errors.otp && (
+                <p className="field-error-text" style={{ textAlign: 'center' }}>
+                  {errors.otp.message}
+                </p>
+              )}
+            </div>
 
             <div className="otp-resend-line">
-              Didn't receive the code?{' '}
+              Didn&apos;t receive the code?{' '}
               {timer > 0 ? (
                 <span style={{ color: '#ff5722', fontWeight: 600 }}>
                   Resend in {String(Math.floor(timer / 60)).padStart(2, '0')}:
@@ -95,10 +124,10 @@ export default function VerifyEmailOtp() {
 
             <button
               type="submit"
-              disabled={loading || otp.length !== 6}
+              disabled={isSubmitting || watchedOtp.length !== 6}
               className="btn-user-submit"
             >
-              {loading ? 'Verifying...' : 'Verify & Continue'}
+              {isSubmitting ? 'Verifying...' : 'Verify & Continue'}
               <ArrowRight size={16} />
             </button>
 
@@ -116,7 +145,7 @@ export default function VerifyEmailOtp() {
             <div className="user-auth-header">
               <h1>Welcome to mobifys! Account Created</h1>
               <p>
-                Your mobifys robotics account has been verified and activated. You're all set to
+                Your mobifys robotics account has been verified and activated. You&apos;re all set to
                 explore premier robotics and manage your profile.
               </p>
             </div>

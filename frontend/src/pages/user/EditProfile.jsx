@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   Upload,
   Save,
@@ -17,61 +18,111 @@ import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setUser } from '../../redux/slices/authSlice';
 import OtpInput from '../../components/OtpInput';
+import {
+  EMAIL_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  confirmPasswordRules,
+  emailRules,
+  getPasswordChecks,
+  nameRules,
+  normalizeText,
+  optionalProfilePhoneRules,
+  strongPasswordRules,
+  toastFirstFormError,
+} from '../../utils/formValidation';
 import './EditProfile.css';
 
 export default function EditProfile() {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [currentEmail, setCurrentEmail] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [removeProfileImage, setRemoveProfileImage] = useState(false);
   const [showRemoveImageModal, setShowRemoveImageModal] = useState(false);
   const [showSaveProfileModal, setShowSaveProfileModal] = useState(false);
+  const [pendingProfileValues, setPendingProfileValues] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Email Change with 2-Step OTP (1: Current Email OTP, 2: New Email OTP)
-  const [currentEmailInput, setCurrentEmailInput] = useState('');
   const [currentEmailOtpSent, setCurrentEmailOtpSent] = useState(false);
   const [currentEmailOtp, setCurrentEmailOtp] = useState('');
   const [currentEmailVerified, setCurrentEmailVerified] = useState(false);
 
-  const [newEmail, setNewEmail] = useState('');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
 
-  // Change Password
-  const [passwords, setPasswords] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [passwordLoading, setPasswordLoading] = useState(false);
+  // Change Password UI toggles
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const hasMinMaxLen = passwords.newPassword.length >= 8 && passwords.newPassword.length <= 64;
-  const hasUpperLower =
-    /[a-z]/.test(passwords.newPassword) && /[A-Z]/.test(passwords.newPassword);
-  const hasNumber = /[0-9]/.test(passwords.newPassword);
-  const hasSymbol = /[^A-Za-z0-9\s]/.test(passwords.newPassword);
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const profileForm = useForm({
+    defaultValues: {
+      name: '',
+      phone: '',
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
+
+  const currentEmailForm = useForm({
+    defaultValues: {
+      currentEmail: '',
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
+
+  const newEmailForm = useForm({
+    defaultValues: {
+      newEmail: '',
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
+
+  const passwordForm = useForm({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
+
+  const watchedProfileName = useWatch({
+    control: profileForm.control,
+    name: 'name',
+    defaultValue: '',
+  });
+  const watchedNewPassword = useWatch({
+    control: passwordForm.control,
+    name: 'newPassword',
+    defaultValue: '',
+  });
+  const { hasMinMaxLen, hasUpperLower, hasNumber, hasSymbol } =
+    getPasswordChecks(watchedNewPassword);
+
+  const { reset: resetProfileForm } = profileForm;
 
   useEffect(() => {
     axiosInstance
       .get('/user/profile')
       .then(({ data }) => {
-        setName(data.user.name || '');
-        setPhone(data.user.phone || '');
+        resetProfileForm({
+          name: data.user.name || '',
+          phone: data.user.phone || '',
+        });
         setCurrentEmail(data.user.email || '');
         setPreviewUrl(data.user.profileImage || '');
       })
       .catch(() => toast.error('Failed to load profile data'));
-  }, []);
+  }, [resetProfileForm]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -88,18 +139,18 @@ export default function EditProfile() {
   };
 
   // Save Name, Phone & S3 Profile Photo
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return toast.error('Name cannot be empty');
+  const onProfileSubmit = (values) => {
+    setPendingProfileValues(values);
     setShowSaveProfileModal(true);
   };
 
   const confirmSaveProfile = async () => {
+    const values = pendingProfileValues || profileForm.getValues();
     try {
       setSavingProfile(true);
       const formData = new FormData();
-      formData.append('name', name.trim());
-      formData.append('phone', phone.trim());
+      formData.append('name', normalizeText(values.name));
+      formData.append('phone', values.phone.trim());
       if (imageFile) {
         formData.append('profileImage', imageFile);
       }
@@ -123,14 +174,11 @@ export default function EditProfile() {
   };
 
   // Step 1a: Send OTP to Current Registered Email
-  const handleSendCurrentEmailOtp = async () => {
-    if (!currentEmailInput.trim()) {
-      return toast.error('Enter your current registered email address');
-    }
+  const onSendCurrentEmailOtp = async ({ currentEmail: enteredCurrentEmail }) => {
     try {
       setEmailLoading(true);
       const { data } = await axiosInstance.post('/user/profile/request-current-email-otp', {
-        currentEmail: currentEmailInput,
+        currentEmail: enteredCurrentEmail.trim().toLowerCase(),
       });
       toast.success(data.message);
       setCurrentEmailOtp('');
@@ -147,10 +195,11 @@ export default function EditProfile() {
     if (currentEmailOtp.trim().length !== 6) {
       return toast.error('Enter the 6-digit OTP sent to your current email');
     }
+    const enteredCurrentEmail = currentEmailForm.getValues('currentEmail').trim().toLowerCase();
     try {
       setEmailLoading(true);
       const { data } = await axiosInstance.post('/user/profile/verify-current-email', {
-        currentEmail: currentEmailInput,
+        currentEmail: enteredCurrentEmail,
         otp: currentEmailOtp,
       });
       toast.success(data.message);
@@ -165,12 +214,11 @@ export default function EditProfile() {
   };
 
   // Step 2a: Request OTP for New Email
-  const handleSendEmailOtp = async () => {
-    if (!newEmail.trim()) return toast.error('Enter the new email address');
+  const onSendEmailOtp = async ({ newEmail }) => {
     try {
       setEmailLoading(true);
       const { data } = await axiosInstance.post('/user/profile/request-email-change', {
-        newEmail,
+        newEmail: newEmail.trim().toLowerCase(),
       });
       toast.success(data.message);
       setEmailOtp('');
@@ -187,10 +235,11 @@ export default function EditProfile() {
     if (emailOtp.trim().length !== 6) {
       return toast.error('Enter the 6-digit OTP sent to your new email');
     }
+    const enteredNewEmail = newEmailForm.getValues('newEmail').trim().toLowerCase();
     try {
       setEmailLoading(true);
       const { data } = await axiosInstance.post('/user/profile/verify-email-change', {
-        newEmail,
+        newEmail: enteredNewEmail,
         otp: emailOtp,
       });
       toast.success(data.message);
@@ -198,11 +247,11 @@ export default function EditProfile() {
         dispatch(setUser(data.user));
       }
       setCurrentEmail(data.email);
-      setCurrentEmailInput('');
+      currentEmailForm.reset({ currentEmail: '' });
+      newEmailForm.reset({ newEmail: '' });
       setCurrentEmailOtp('');
       setCurrentEmailOtpSent(false);
       setCurrentEmailVerified(false);
-      setNewEmail('');
       setEmailOtp('');
       setEmailOtpSent(false);
     } catch (err) {
@@ -213,27 +262,23 @@ export default function EditProfile() {
   };
 
   const handleRestartEmailChange = () => {
-    setCurrentEmailInput('');
+    currentEmailForm.reset({ currentEmail: '' });
+    newEmailForm.reset({ newEmail: '' });
     setCurrentEmailOtp('');
     setCurrentEmailOtpSent(false);
     setCurrentEmailVerified(false);
-    setNewEmail('');
     setEmailOtp('');
     setEmailOtpSent(false);
   };
 
   // Change Password
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
+  const onChangePassword = async (values) => {
     try {
-      setPasswordLoading(true);
-      const { data } = await axiosInstance.put('/user/profile/change-password', passwords);
+      const { data } = await axiosInstance.put('/user/profile/change-password', values);
       toast.success(data.message);
-      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      passwordForm.reset();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to change password');
-    } finally {
-      setPasswordLoading(false);
     }
   };
 
@@ -268,7 +313,11 @@ export default function EditProfile() {
       </div>
 
       {/* Form 1: Avatar + Personal Details */}
-      <form onSubmit={handleSaveProfile} className="edit-section-card">
+      <form
+        onSubmit={profileForm.handleSubmit(onProfileSubmit, toastFirstFormError)}
+        className="edit-section-card"
+        noValidate
+      >
         <div>
           <h2>Avatar & Personal Information</h2>
           <p className="edit-section-sub">
@@ -281,7 +330,9 @@ export default function EditProfile() {
             {previewUrl ? (
               <img src={previewUrl} alt="Avatar preview" className="avatar-preview-lg" />
             ) : (
-              <div className="avatar-preview-lg">{name?.slice(0, 2).toUpperCase() || 'U'}</div>
+              <div className="avatar-preview-lg">
+                {watchedProfileName?.slice(0, 2).toUpperCase() || 'U'}
+              </div>
             )}
             {previewUrl && (
               <button
@@ -316,26 +367,38 @@ export default function EditProfile() {
         </div>
 
         <div className="two-col-fields">
-          <div className="edit-field-group">
-            <label>Full Name *</label>
+          <div
+            className={`edit-field-group ${profileForm.formState.errors.name ? 'has-error' : ''}`}
+          >
+            <label htmlFor="profile-name">Full Name *</label>
             <input
+              id="profile-name"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              maxLength={NAME_MAX_LENGTH}
               className="edit-input"
-              required
+              aria-invalid={Boolean(profileForm.formState.errors.name)}
+              {...profileForm.register('name', nameRules('Name cannot be empty'))}
             />
+            {profileForm.formState.errors.name && (
+              <p className="field-error-text">{profileForm.formState.errors.name.message}</p>
+            )}
           </div>
 
-          <div className="edit-field-group">
-            <label>Phone Number</label>
+          <div
+            className={`edit-field-group ${profileForm.formState.errors.phone ? 'has-error' : ''}`}
+          >
+            <label htmlFor="profile-phone">Phone Number</label>
             <input
+              id="profile-phone"
               type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
               placeholder="+91 98470 12345"
               className="edit-input"
+              aria-invalid={Boolean(profileForm.formState.errors.phone)}
+              {...profileForm.register('phone', optionalProfilePhoneRules())}
             />
+            {profileForm.formState.errors.phone && (
+              <p className="field-error-text">{profileForm.formState.errors.phone.message}</p>
+            )}
           </div>
         </div>
 
@@ -357,41 +420,60 @@ export default function EditProfile() {
 
         <div className="email-change-box">
           {!currentEmailVerified ? (
-            <>
+            <form
+              onSubmit={currentEmailForm.handleSubmit(onSendCurrentEmailOtp, toastFirstFormError)}
+              noValidate
+            >
               <div className="email-step-header">
                 <span className="email-step-badge">Step 1 of 2</span>
-                <label className="email-step-title">
+                <label htmlFor="current-email-verify" className="email-step-title">
                   <Mail size={13} />
                   Verify Your Current Registered Email
                 </label>
               </div>
-              <div className="inline-action-row">
-                <input
-                  type="email"
-                  value={currentEmailInput}
-                  onChange={(e) => {
-                    setCurrentEmailInput(e.target.value);
-                    if (currentEmailOtpSent) {
-                      setCurrentEmailOtpSent(false);
-                      setCurrentEmailOtp('');
-                    }
-                  }}
-                  placeholder="Enter your current registered email"
-                  className="edit-input"
-                  disabled={emailLoading}
+              <div className="inline-action-row" style={{ marginTop: '10px' }}>
+                <Controller
+                  name="currentEmail"
+                  control={currentEmailForm.control}
+                  rules={emailRules('Enter your current registered email address')}
+                  render={({ field }) => (
+                    <input
+                      id="current-email-verify"
+                      type="email"
+                      maxLength={EMAIL_MAX_LENGTH}
+                      value={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        if (currentEmailOtpSent) {
+                          setCurrentEmailOtpSent(false);
+                          setCurrentEmailOtp('');
+                        }
+                      }}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      placeholder="Enter your current registered email"
+                      className="edit-input"
+                      disabled={emailLoading}
+                      aria-invalid={Boolean(currentEmailForm.formState.errors.currentEmail)}
+                    />
+                  )}
                 />
                 <button
-                  type="button"
-                  onClick={handleSendCurrentEmailOtp}
+                  type="submit"
                   disabled={emailLoading}
                   className="btn-secondary-outline"
                 >
                   {emailLoading && !currentEmailOtpSent ? 'Sending...' : 'Send Verification OTP'}
                 </button>
               </div>
+              {currentEmailForm.formState.errors.currentEmail && (
+                <p className="field-error-text">
+                  {currentEmailForm.formState.errors.currentEmail.message}
+                </p>
+              )}
 
               {currentEmailOtpSent && (
-                <div className="email-otp-verify-row" style={{ marginTop: '6px' }}>
+                <div className="email-otp-verify-row" style={{ marginTop: '10px' }}>
                   <OtpInput
                     value={currentEmailOtp}
                     onChange={setCurrentEmailOtp}
@@ -408,9 +490,12 @@ export default function EditProfile() {
                   </button>
                 </div>
               )}
-            </>
+            </form>
           ) : (
-            <>
+            <form
+              onSubmit={newEmailForm.handleSubmit(onSendEmailOtp, toastFirstFormError)}
+              noValidate
+            >
               <div className="email-verified-banner">
                 <span className="email-verified-status">
                   <CheckCircle2 size={15} />
@@ -426,41 +511,57 @@ export default function EditProfile() {
                 </button>
               </div>
 
-              <div className="email-step-header">
+              <div className="email-step-header" style={{ marginTop: '12px' }}>
                 <span className="email-step-badge">Step 2 of 2</span>
-                <label className="email-step-title">
+                <label htmlFor="new-email-verify" className="email-step-title">
                   <Mail size={13} />
                   Enter & Verify Your New Email Address
                 </label>
               </div>
 
-              <div className="inline-action-row">
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => {
-                    setNewEmail(e.target.value);
-                    if (emailOtpSent) {
-                      setEmailOtpSent(false);
-                      setEmailOtp('');
-                    }
-                  }}
-                  placeholder="Enter new email address"
-                  className="edit-input"
-                  disabled={emailLoading}
+              <div className="inline-action-row" style={{ marginTop: '10px' }}>
+                <Controller
+                  name="newEmail"
+                  control={newEmailForm.control}
+                  rules={emailRules('Enter the new email address')}
+                  render={({ field }) => (
+                    <input
+                      id="new-email-verify"
+                      type="email"
+                      maxLength={EMAIL_MAX_LENGTH}
+                      value={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        if (emailOtpSent) {
+                          setEmailOtpSent(false);
+                          setEmailOtp('');
+                        }
+                      }}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      placeholder="Enter new email address"
+                      className="edit-input"
+                      disabled={emailLoading}
+                      aria-invalid={Boolean(newEmailForm.formState.errors.newEmail)}
+                    />
+                  )}
                 />
                 <button
-                  type="button"
-                  onClick={handleSendEmailOtp}
+                  type="submit"
                   disabled={emailLoading}
                   className="btn-secondary-outline"
                 >
                   {emailLoading && !emailOtpSent ? 'Sending...' : 'Send Verification OTP'}
                 </button>
               </div>
+              {newEmailForm.formState.errors.newEmail && (
+                <p className="field-error-text">
+                  {newEmailForm.formState.errors.newEmail.message}
+                </p>
+              )}
 
               {emailOtpSent && (
-                <div className="email-otp-verify-row" style={{ marginTop: '6px' }}>
+                <div className="email-otp-verify-row" style={{ marginTop: '10px' }}>
                   <OtpInput
                     value={emailOtp}
                     onChange={setEmailOtp}
@@ -477,27 +578,38 @@ export default function EditProfile() {
                   </button>
                 </div>
               )}
-            </>
+            </form>
           )}
         </div>
       </div>
 
       {/* Section 3: Change Password */}
-      <form onSubmit={handleChangePassword} className="edit-section-card">
+      <form
+        onSubmit={passwordForm.handleSubmit(onChangePassword, toastFirstFormError)}
+        className="edit-section-card"
+        noValidate
+      >
         <div>
           <h2>Security & Master Authentication</h2>
           <p className="edit-section-sub">Update your password to keep your account protected.</p>
         </div>
 
-        <div className="edit-field-group">
-          <label>Current Password</label>
+        <div
+          className={`edit-field-group ${
+            passwordForm.formState.errors.currentPassword ? 'has-error' : ''
+          }`}
+        >
+          <label htmlFor="edit-current-password">Current Password</label>
           <div className="edit-password-input-wrap">
             <input
+              id="edit-current-password"
               type={showCurrentPassword ? 'text' : 'password'}
-              value={passwords.currentPassword}
-              onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
               placeholder="Enter current password"
               className="edit-input edit-password-input"
+              aria-invalid={Boolean(passwordForm.formState.errors.currentPassword)}
+              {...passwordForm.register('currentPassword', {
+                required: 'Current password is required',
+              })}
             />
             <button
               type="button"
@@ -509,19 +621,36 @@ export default function EditProfile() {
               {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {passwordForm.formState.errors.currentPassword && (
+            <p className="field-error-text">
+              {passwordForm.formState.errors.currentPassword.message}
+            </p>
+          )}
         </div>
 
         <div className="two-col-fields">
-          <div className="edit-field-group">
-            <label>New Password</label>
+          <div
+            className={`edit-field-group ${
+              passwordForm.formState.errors.newPassword ? 'has-error' : ''
+            }`}
+          >
+            <label htmlFor="edit-new-password">New Password</label>
             <div className="edit-password-input-wrap">
               <input
+                id="edit-new-password"
                 type={showNewPassword ? 'text' : 'password'}
-                maxLength={64}
-                value={passwords.newPassword}
-                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                maxLength={PASSWORD_MAX_LENGTH}
                 placeholder="Minimum 8 characters"
                 className="edit-input edit-password-input"
+                aria-invalid={Boolean(passwordForm.formState.errors.newPassword)}
+                {...passwordForm.register('newPassword', {
+                  ...strongPasswordRules('New password is required'),
+                  onChange: () => {
+                    if (passwordForm.getValues('confirmPassword')) {
+                      void passwordForm.trigger('confirmPassword');
+                    }
+                  },
+                })}
               />
               <button
                 type="button"
@@ -539,18 +668,34 @@ export default function EditProfile() {
               <span className={hasNumber ? 'met' : ''}>• Number</span>
               <span className={hasSymbol ? 'met' : ''}>• Special char</span>
             </div>
+            {passwordForm.formState.errors.newPassword && (
+              <p className="field-error-text">
+                {passwordForm.formState.errors.newPassword.message}
+              </p>
+            )}
           </div>
 
-          <div className="edit-field-group">
-            <label>Confirm New Password</label>
+          <div
+            className={`edit-field-group ${
+              passwordForm.formState.errors.confirmPassword ? 'has-error' : ''
+            }`}
+          >
+            <label htmlFor="edit-confirm-password">Confirm New Password</label>
             <div className="edit-password-input-wrap">
               <input
+                id="edit-confirm-password"
                 type={showConfirmPassword ? 'text' : 'password'}
-                maxLength={64}
-                value={passwords.confirmPassword}
-                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                maxLength={PASSWORD_MAX_LENGTH}
                 placeholder="Re-enter new password"
                 className="edit-input edit-password-input"
+                aria-invalid={Boolean(passwordForm.formState.errors.confirmPassword)}
+                {...passwordForm.register(
+                  'confirmPassword',
+                  confirmPasswordRules(
+                    () => passwordForm.getValues('newPassword'),
+                    'Please confirm your new password'
+                  )
+                )}
               />
               <button
                 type="button"
@@ -564,12 +709,22 @@ export default function EditProfile() {
                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {passwordForm.formState.errors.confirmPassword && (
+              <p className="field-error-text">
+                {passwordForm.formState.errors.confirmPassword.message}
+              </p>
+            )}
           </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button type="submit" disabled={passwordLoading} className="btn-orange-action">
-            <Lock size={14} /> {passwordLoading ? 'Updating...' : 'Update Password'}
+          <button
+            type="submit"
+            disabled={passwordForm.formState.isSubmitting}
+            className="btn-orange-action"
+          >
+            <Lock size={14} />{' '}
+            {passwordForm.formState.isSubmitting ? 'Updating...' : 'Update Password'}
           </button>
         </div>
       </form>

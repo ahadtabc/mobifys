@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm, useWatch } from 'react-hook-form';
 import { Search, X, RotateCw, Eye, Ban, CheckCircle, Users, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
@@ -8,10 +9,20 @@ import './UsersList.css';
 
 export default function UsersList() {
   const [users, setUsers] = useState([]);
-  const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
+
+  const {
+    register: registerSearch,
+    control: searchControl,
+    handleSubmit: handleSearchFormSubmit,
+    reset: resetSearchForm,
+  } = useForm({
+    defaultValues: { search: '' },
+  });
+
+  const watchedSearch = useWatch({ control: searchControl, name: 'search', defaultValue: '' });
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -78,14 +89,13 @@ export default function UsersList() {
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
+  const handleSearchSubmit = handleSearchFormSubmit(({ search }) => {
     setPage(1);
-    setAppliedSearch(searchInput.trim());
-  };
+    setAppliedSearch(search.trim());
+  });
 
   const handleClearSearch = () => {
-    setSearchInput('');
+    resetSearchForm({ search: '' });
     setAppliedSearch('');
     setPage(1);
   };
@@ -186,12 +196,11 @@ export default function UsersList() {
             <Search className="search-icon" size={16} />
             <input
               type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by name, email, or phone..."
               className="search-input"
+              {...registerSearch('search')}
             />
-            {(searchInput || appliedSearch) && (
+            {(watchedSearch || appliedSearch) && (
               <button
                 type="button"
                 onClick={handleClearSearch}

@@ -1,21 +1,46 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, KeyRound, ArrowRight, ArrowLeft } from "lucide-react";
-import toast from "react-hot-toast";
-import axiosInstance from "../../api/axiosInstance";
-import OtpInput from "../../components/OtpInput";
-import "./UserForgotPassword.css";
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Controller, useForm } from 'react-hook-form';
+import { Mail, Lock, KeyRound, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
+import axiosInstance from '../../api/axiosInstance';
+import OtpInput from '../../components/OtpInput';
+import {
+  EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  confirmPasswordRules,
+  emailRules,
+  minLengthPasswordRules,
+  otpRules,
+  toastFirstFormError,
+} from '../../utils/formValidation';
+import './UserForgotPassword.css';
 
 export default function UserForgotPassword() {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP + Set New Password
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState('');
   const [timer, setTimer] = useState(120);
-  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
+
+  const emailForm = useForm({
+    defaultValues: { email: '' },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
+
+  const resetForm = useForm({
+    defaultValues: {
+      otp: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
 
   useEffect(() => {
     if (step !== 2 || timer <= 0) return;
@@ -23,39 +48,48 @@ export default function UserForgotPassword() {
     return () => clearInterval(interval);
   }, [step, timer]);
 
-  const handleSendCode = async (e) => {
-    e?.preventDefault();
+  const dispatchResetCode = async (targetEmail) => {
+    const cleanEmail = targetEmail.trim();
+    const { data } = await axiosInstance.post('/user/auth/forgot-password', {
+      email: cleanEmail,
+    });
+    toast.success(data.message);
+    setVerifiedEmail(cleanEmail);
+    setTimer(120);
+    setStep(2);
+  };
+
+  const onSendCode = async ({ email }) => {
     try {
-      setLoading(true);
-      const { data } = await axiosInstance.post("/user/auth/forgot-password", {
-        email,
-      });
-      toast.success(data.message);
-      setTimer(120);
-      setStep(2);
+      await dispatchResetCode(email);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Could not send reset code");
-    } finally {
-      setLoading(false);
+      toast.error(err.response?.data?.message || 'Could not send reset code');
     }
   };
 
-  const handleResetSubmit = async (e) => {
-    e.preventDefault();
+  const handleResendCode = async () => {
     try {
-      setLoading(true);
-      const { data } = await axiosInstance.post("/user/auth/reset-password", {
-        email,
+      setResending(true);
+      await dispatchResetCode(verifiedEmail);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not send reset code');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const onResetSubmit = async ({ otp, newPassword, confirmPassword }) => {
+    try {
+      const { data } = await axiosInstance.post('/user/auth/reset-password', {
+        email: verifiedEmail,
         otp,
         newPassword,
         confirmPassword,
       });
       toast.success(data.message);
-      navigate("/login");
+      navigate('/login');
     } catch (err) {
-      toast.error(err.response?.data?.message || "Password reset failed");
-    } finally {
-      setLoading(false);
+      toast.error(err.response?.data?.message || 'Password reset failed');
     }
   };
 
@@ -63,118 +97,189 @@ export default function UserForgotPassword() {
     <div className="user-auth-wrapper">
       <div className="user-auth-card">
         {step === 1 ? (
-          <form onSubmit={handleSendCode} className="user-auth-form">
+          <form
+            onSubmit={emailForm.handleSubmit(onSendCode, toastFirstFormError)}
+            className="user-auth-form"
+            noValidate
+          >
             <div className="user-auth-header">
               <div className="auth-badge-square">
                 <KeyRound size={24} />
               </div>
               <h1>Forgot Password?</h1>
               <p>
-                Enter your registered email address below.{" "}
-                <div>
-                  We will dispatch a 6-digit verification security code .
-                </div>
+                Enter your registered email address below. We will dispatch a 6-digit verification
+                security code.
               </p>
             </div>
 
             <div className="field-block">
-              <label>REGISTERED EMAIL ADDRESS</label>
-              <div className="field-input-box">
+              <label htmlFor="user-forgot-email">REGISTERED EMAIL ADDRESS</label>
+              <div
+                className={`field-input-box ${emailForm.formState.errors.email ? 'has-error' : ''}`}
+              >
                 <Mail className="field-icon-left" size={16} />
                 <input
+                  id="user-forgot-email"
                   type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  maxLength={EMAIL_MAX_LENGTH}
                   placeholder="e.g. yourname@domain.com"
+                  aria-invalid={Boolean(emailForm.formState.errors.email)}
+                  {...emailForm.register('email', emailRules('Registered email address is required'))}
                 />
               </div>
+              {emailForm.formState.errors.email && (
+                <p className="field-error-text">{emailForm.formState.errors.email.message}</p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={emailForm.formState.isSubmitting}
               className="btn-user-submit"
             >
-              {loading ? "Sending..." : "Send Verification Code"}
+              {emailForm.formState.isSubmitting ? 'Sending...' : 'Send Verification Code'}
               <ArrowRight size={16} />
             </button>
 
             <div className="auth-switch-footer">
-              <Link
-                to="/login"
-                className="orange-link"
-                style={{ color: "#6b7280" }}
-              >
-                <ArrowLeft size={13} style={{ verticalAlign: "middle" }} />{" "}
-                Cancel and return to Sign in
+              <Link to="/login" className="orange-link" style={{ color: '#6b7280' }}>
+                <ArrowLeft size={13} style={{ verticalAlign: 'middle' }} /> Cancel and return to
+                Sign in
               </Link>
             </div>
           </form>
         ) : (
-          <form onSubmit={handleResetSubmit} className="user-auth-form">
+          <form
+            onSubmit={resetForm.handleSubmit(onResetSubmit, toastFirstFormError)}
+            className="user-auth-form"
+            noValidate
+          >
             <div className="user-auth-header">
               <div className="auth-badge-square">
                 <Lock size={24} />
               </div>
               <h1>Set New Password</h1>
               <p>
-                Enter the 6-digit code sent to <strong>{email}</strong> and
-                choose a new password.
+                Enter the 6-digit code sent to <strong>{verifiedEmail}</strong> and choose a new
+                password.
               </p>
             </div>
 
             <div className="field-block">
               <label>6-DIGIT VERIFICATION CODE</label>
-              <OtpInput value={otp} onChange={setOtp} disabled={loading} />
-              <div className="otp-resend-line" style={{ marginTop: "8px" }}>
+              <Controller
+                name="otp"
+                control={resetForm.control}
+                rules={otpRules()}
+                render={({ field }) => (
+                  <OtpInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={resetForm.formState.isSubmitting}
+                  />
+                )}
+              />
+              {resetForm.formState.errors.otp && (
+                <p className="field-error-text" style={{ textAlign: 'center' }}>
+                  {resetForm.formState.errors.otp.message}
+                </p>
+              )}
+              <div className="otp-resend-line" style={{ marginTop: '8px' }}>
                 {timer > 0 ? (
                   <span>
                     Resend code in {Math.floor(timer / 60)}:
-                    {String(timer % 60).padStart(2, "0")}
+                    {String(timer % 60).padStart(2, '0')}
                   </span>
                 ) : (
-                  <button type="button" onClick={handleSendCode}>
-                    Resend OTP
+                  <button type="button" onClick={handleResendCode} disabled={resending}>
+                    {resending ? 'Sending...' : 'Resend OTP'}
                   </button>
                 )}
               </div>
             </div>
 
             <div className="field-block">
-              <label>NEW PASSWORD</label>
-              <div className="field-input-box">
+              <label htmlFor="user-reset-password">NEW PASSWORD</label>
+              <div
+                className={`field-input-box ${
+                  resetForm.formState.errors.newPassword ? 'has-error' : ''
+                }`}
+              >
                 <Lock className="field-icon-left" size={16} />
                 <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  id="user-reset-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  maxLength={PASSWORD_MAX_LENGTH}
                   placeholder="Minimum 8 characters"
+                  aria-invalid={Boolean(resetForm.formState.errors.newPassword)}
+                  {...resetForm.register('newPassword', {
+                    ...minLengthPasswordRules('New password is required'),
+                    onChange: () => {
+                      if (resetForm.getValues('confirmPassword')) {
+                        void resetForm.trigger('confirmPassword');
+                      }
+                    },
+                  })}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  className="eye-btn"
+                  aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+              {resetForm.formState.errors.newPassword && (
+                <p className="field-error-text">{resetForm.formState.errors.newPassword.message}</p>
+              )}
             </div>
 
             <div className="field-block">
-              <label>CONFIRM NEW PASSWORD</label>
-              <div className="field-input-box">
+              <label htmlFor="user-reset-confirm">CONFIRM NEW PASSWORD</label>
+              <div
+                className={`field-input-box ${
+                  resetForm.formState.errors.confirmPassword ? 'has-error' : ''
+                }`}
+              >
                 <Lock className="field-icon-left" size={16} />
                 <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  id="user-reset-confirm"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  maxLength={PASSWORD_MAX_LENGTH}
                   placeholder="Re-enter new password"
+                  aria-invalid={Boolean(resetForm.formState.errors.confirmPassword)}
+                  {...resetForm.register(
+                    'confirmPassword',
+                    confirmPasswordRules(
+                      () => resetForm.getValues('newPassword'),
+                      'Please confirm your new password'
+                    )
+                  )}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="eye-btn"
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+              {resetForm.formState.errors.confirmPassword && (
+                <p className="field-error-text">
+                  {resetForm.formState.errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={resetForm.formState.isSubmitting}
               className="btn-user-submit"
             >
-              {loading ? "Updating..." : "Update Password & Continue"}
+              {resetForm.formState.isSubmitting ? 'Updating...' : 'Update Password & Continue'}
               <ArrowRight size={16} />
             </button>
           </form>

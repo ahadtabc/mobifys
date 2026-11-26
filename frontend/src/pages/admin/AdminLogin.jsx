@@ -1,33 +1,39 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import { setAdmin } from '../../redux/slices/authSlice';
 import mobifysLogo from '../../assets/mobifys-logo.png';
+import { EMAIL_MAX_LENGTH, emailRules, toastFirstFormError } from '../../utils/formValidation';
 import './AdminLogin.css';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [keepSignedIn, setKeepSignedIn] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email.trim() || !password) {
-      return toast.error('Please enter your work email and password');
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+      keepSignedIn: false,
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  });
 
+  const onSubmit = async ({ email, password, keepSignedIn }) => {
     try {
-      setLoading(true);
       const { data } = await axiosInstance.post('/admin/auth/login', {
-        email,
+        email: email.trim(),
         password,
         keepSignedIn,
       });
@@ -37,8 +43,6 @@ export default function AdminLogin() {
       navigate('/admin/users');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Admin sign in failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -48,7 +52,9 @@ export default function AdminLogin() {
         <div className="admin-brand-icon">
           <img src={mobifysLogo} alt="Mobifys" />
         </div>
-        <span className="admin-brand-title">mobifys<span style={{ color: '#ff5521' }}>.</span></span>
+        <span className="admin-brand-title">
+          mobifys<span style={{ color: '#ff5521' }}>.</span>
+        </span>
         <span className="admin-brand-subtitle">ADMIN CONSOLE</span>
       </header>
 
@@ -59,56 +65,62 @@ export default function AdminLogin() {
             <p>Enter your credentials to access the console</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="admin-auth-form">
+          <form
+            onSubmit={handleSubmit(onSubmit, toastFirstFormError)}
+            className="admin-auth-form"
+            noValidate
+          >
             <div className="form-group">
-              <label>Email Address</label>
-              <div className="input-wrapper">
+              <label htmlFor="admin-login-email">Email Address</label>
+              <div className={`input-wrapper ${errors.email ? 'has-error' : ''}`}>
                 <Mail className="input-icon-left" size={16} />
                 <input
+                  id="admin-login-email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  maxLength={EMAIL_MAX_LENGTH}
                   placeholder="admin@mobifys.in"
+                  aria-invalid={Boolean(errors.email)}
+                  {...register('email', emailRules('Work email address is required'))}
                 />
               </div>
+              {errors.email && <p className="field-error-text">{errors.email.message}</p>}
             </div>
 
             <div className="form-group">
               <div className="form-label-row">
-                <label>Password</label>
+                <label htmlFor="admin-login-password">Password</label>
                 <Link to="/admin/forgot-password" className="forgot-link">
                   Forgot password?
                 </Link>
               </div>
-              <div className="input-wrapper">
+              <div className={`input-wrapper ${errors.password ? 'has-error' : ''}`}>
                 <Lock className="input-icon-left" size={16} />
                 <input
+                  id="admin-login-password"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
+                  aria-invalid={Boolean(errors.password)}
+                  {...register('password', { required: 'Password is required' })}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   className="password-toggle-btn"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && <p className="field-error-text">{errors.password.message}</p>}
             </div>
 
             <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={keepSignedIn}
-                onChange={(e) => setKeepSignedIn(e.target.checked)}
-              />
+              <input type="checkbox" {...register('keepSignedIn')} />
               <span>Keep me signed in</span>
             </label>
 
-            <button type="submit" disabled={loading} className="btn-primary-full">
-              {loading ? 'Signing in...' : 'Sign In'}
+            <button type="submit" disabled={isSubmitting} className="btn-primary-full">
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
               <ArrowRight size={16} />
             </button>
           </form>
