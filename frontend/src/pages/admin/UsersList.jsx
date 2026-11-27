@@ -11,6 +11,7 @@ export default function UsersList() {
   const [users, setUsers] = useState([]);
   const [appliedSearch, setAppliedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('latest');
   const [page, setPage] = useState(1);
 
   const {
@@ -44,12 +45,13 @@ export default function UsersList() {
       params: {
         search: appliedSearch,
         status: statusFilter,
+        sort: sortBy,
         page,
         limit: 10,
       },
     });
     return data;
-  }, [appliedSearch, statusFilter, page]);
+  }, [appliedSearch, statusFilter, sortBy, page]);
 
   const applyCustomersResponse = useCallback((data) => {
     setUsers(data.users);
@@ -129,11 +131,11 @@ export default function UsersList() {
       .slice(0, 2);
 
   return (
-    <div className="customers-page">
+    <div className="users-page">
       <div className="page-header">
         <h1>Users</h1>
         <p>
-          Manage registered users, search accounts, and control access (sorted latest first).
+          Manage registered users, search accounts, and control access.
         </p>
       </div>
 
@@ -216,30 +218,38 @@ export default function UsersList() {
             Search
           </button>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="status-select"
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="blocked">Blocked</option>
-          </select>
 
           <button type="button" onClick={handleRefresh} title="Refresh" className="btn-refresh">
             <RotateCw size={15} />
           </button>
         </div>
 
-        <div className="sort-hint">Sort By : Latest Registered Users First</div>
+        <div className="sort-control-group">
+          <label htmlFor="users-sort-select" className="sort-label">
+            Sort By:
+          </label>
+          <select
+            id="users-sort-select"
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPage(1);
+            }}
+            className="status-select sort-select"
+          >
+            <option value="latest">Latest Registered</option>
+            <option value="oldest">Oldest Registered</option>
+            <option value="name_asc">Name (A–Z)</option>
+            <option value="name_desc">Name (Z–A)</option>
+            <option value="wallet_desc">Wallet (High–Low)</option>
+            <option value="wallet_asc">Wallet (Low–High)</option>
+          </select>
+        </div>
       </div>
 
       <div className="table-card">
         <div className="table-scroll">
-          <table className="customers-table">
+          <table className="users-table">
             <thead>
               <tr>
                 <th>User</th>

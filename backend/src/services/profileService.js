@@ -3,10 +3,10 @@ import User from '../models/User.js';
 import Address from '../models/Address.js';
 import Otp from '../models/Otp.js';
 import ApiError from '../utils/ApiError.js';
-import { uploadToS3, deleteFromS3 } from './s3Service.js';
+import { syncProfileImage } from './s3Service.js';
 import { createAndSendOtp, verifyOtpCode } from './otpService.js';
 import { revokeAllUserTokens } from './tokenService.js';
-import { normalizeEmail } from '../validators/authValidator.js';
+import { normalizeEmail, validateEmailAddress } from '../validators/authValidator.js';
 
 const CURRENT_EMAIL_WINDOW_MS = 15 * 60 * 1000;
 
@@ -39,17 +39,12 @@ export const updateProfileDetails = async ({ userId, name, phone, file, removePr
     user.phone = phone.trim();
   }
 
-  if (file) {
-    const oldImageUrl = user.profileImage;
-    user.profileImage = await uploadToS3(file, 'profiles');
-    if (oldImageUrl) {
-      await deleteFromS3(oldImageUrl).catch(() => {});
-    }
-  } else if (removeProfileImage === 'true' && user.profileImage) {
-    const oldImageUrl = user.profileImage;
-    user.profileImage = '';
-    await deleteFromS3(oldImageUrl).catch(() => {});
-  }
+  user.profileImage = await syncProfileImage({
+    currentImageUrl: user.profileImage,
+    file,
+    removeImage: removeProfileImage === 'true' || removeProfileImage === true,
+    folder: 'profiles',
+  });
 
   await user.save();
   return user;
@@ -111,7 +106,7 @@ export const confirmCurrentEmailVerification = async ({ userId, currentEmail, en
 export const requestUserEmailChange = async ({ userId, currentEmail, newEmail }) => {
   await assertCurrentEmailVerified(userId, currentEmail);
 
-  const cleanNewEmail = normalizeEmail(newEmail);
+  const cleanNewEmail = validateEmailAddress(newEmail);
   if (cleanNewEmail === currentEmail) {
     throw new ApiError(400, 'Please enter a different email address');
   }

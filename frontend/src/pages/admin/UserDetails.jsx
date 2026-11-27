@@ -61,7 +61,7 @@ export default function UserDetails() {
   if (!customer) return <div style={{ fontSize: '12px', color: '#dc2626' }}>User not found.</div>;
 
   return (
-    <div className="customer-details-page">
+    <div className="user-details-page">
       <div className="details-header-card">
         <div className="details-identity">
           <div className="details-avatar-lg">

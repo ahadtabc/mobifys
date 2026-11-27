@@ -34,7 +34,7 @@ const createProtectMiddleware = (scope) => async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'User account not found' });
     }
 
-    if (user.isBlocked) {
+    if (user.isBlocked || user.status === 'blocked') {
       await revokeAllUserTokens(user._id, scope);
       clearAuthCookies(res, scope);
       return res.status(403).json({
@@ -62,7 +62,7 @@ export const protectAdmin = createProtectMiddleware('admin');
 export const protect = protectUser;
 
 export const adminOnly = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
+  if (req.user && req.user.role === 'admin') {
     return next();
   }
   return res.status(403).json({ success: false, message: 'Admin access required' });

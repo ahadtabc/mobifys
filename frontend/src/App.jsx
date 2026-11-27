@@ -23,6 +23,7 @@ const AddressFormPage = lazy(() => import('./pages/user/AddressFormPage'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
 const AdminForgotPassword = lazy(() => import('./pages/admin/AdminForgotPassword'));
+const AdminProfile = lazy(() => import('./pages/admin/AdminProfile'));
 const UsersList = lazy(() => import('./pages/admin/UsersList'));
 const UserDetails = lazy(() => import('./pages/admin/UserDetails'));
 
@@ -164,6 +165,7 @@ export default function App() {
           >
             <Route index element={<Navigate to="users" replace />} />
             <Route path="dashboard" element={<div>Dashboard Overview</div>} />
+            <Route path="profile" element={<AdminProfile />} />
             <Route path="users" element={<UsersList />} />
             <Route path="users/:id" element={<UserDetails />} />
             <Route path="customers" element={<Navigate to="/admin/users" replace />} />

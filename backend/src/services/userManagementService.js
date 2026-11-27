@@ -3,11 +3,28 @@ import Address from '../models/Address.js';
 import ApiError from '../utils/ApiError.js';
 import { revokeAllUserTokens } from './tokenService.js';
 
-export const listCustomers = async ({ page = 1, limit = 10, search = '', status = 'all' }) => {
+const USER_SORT_OPTIONS = {
+  latest: { createdAt: -1 },
+  oldest: { createdAt: 1 },
+  name_asc: { name: 1, createdAt: -1 },
+  name_desc: { name: -1, createdAt: -1 },
+  wallet_desc: { walletBalance: -1, createdAt: -1 },
+  wallet_asc: { walletBalance: 1, createdAt: -1 },
+};
+
+export const listCustomers = async ({
+  page = 1,
+  limit = 10,
+  search = '',
+  status = 'all',
+  sort = 'latest',
+}) => {
   const parsedPage = Math.max(1, parseInt(page, 10) || 1);
   const parsedLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
   const cleanSearch = search.trim();
   const cleanStatus = status.toLowerCase();
+  const cleanSort = typeof sort === 'string' ? sort.toLowerCase() : 'latest';
+  const sortOrder = USER_SORT_OPTIONS[cleanSort] || USER_SORT_OPTIONS.latest;
 
   const query = { role: 'user' };
 
@@ -27,14 +44,20 @@ export const listCustomers = async ({ page = 1, limit = 10, search = '', status 
   }
 
   const skip = (parsedPage - 1) * parsedLimit;
+  const usersQuery = User.find(query)
+    .select('-passwordHash')
+    .sort(sortOrder)
+    .skip(skip)
+    .limit(parsedLimit)
+    .lean();
+
+  if (cleanSort === 'name_asc' || cleanSort === 'name_desc') {
+    usersQuery.collation({ locale: 'en', strength: 2 });
+  }
+
   const [totalUsers, users, totalCustomers, activeCustomers, blockedCustomers] = await Promise.all([
     User.countDocuments(query),
-    User.find(query)
-      .select('-passwordHash')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parsedLimit)
-      .lean(),
+    usersQuery,
     User.countDocuments({ role: 'user' }),
     User.countDocuments({ role: 'user', isBlocked: false }),
     User.countDocuments({ role: 'user', isBlocked: true }),

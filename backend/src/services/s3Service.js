@@ -56,3 +56,25 @@ export const deleteFromS3 = async (fileUrl) => {
     })
   );
 };
+
+export const syncProfileImage = async ({
+  currentImageUrl = '',
+  file,
+  removeImage = false,
+  folder = 'profiles',
+}) => {
+  if (file) {
+    const nextImageUrl = await uploadToS3(file, folder);
+    if (currentImageUrl) {
+      await deleteFromS3(currentImageUrl).catch(() => {});
+    }
+    return nextImageUrl;
+  }
+
+  if (removeImage && currentImageUrl) {
+    await deleteFromS3(currentImageUrl).catch(() => {});
+    return '';
+  }
+
+  return currentImageUrl;
+};

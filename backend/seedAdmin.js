@@ -7,24 +7,23 @@ const seedData = async () => {
   try {
     await connectDB();
 
-    const adminEmail = 'admin@mobifys.in';
+    const adminEmail = 'ahadtabc@gmail.com';
     const existingAdmin = await User.findOne({ email: adminEmail });
 
     if (!existingAdmin) {
       const passwordHash = await bcrypt.hash('Admin@123', 10);
       await User.create({
-        name: 'Admin User',
+        name: 'Admin Ahad',
         email: adminEmail,
-        phone: '+91 907-424-3208',
+        phone: '+91 9074243208',
         passwordHash,
-        role: 'super_admin',
+        role: 'admin',
         status: 'active',
-        isBlocked: false,
         mustChangePassword: false,
       });
-      console.log('Super Admin created: admin@mobifys.in / Admin@123');
+      console.log('Admin created');
     } else {
-      console.log('Super Admin already exists.');
+      console.log('Admin already exists.');
     }
 
     process.exit(0);

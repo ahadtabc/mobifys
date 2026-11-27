@@ -10,8 +10,15 @@ import {
   resetAdminAccountPassword,
   sendAdminForgotPasswordOtp,
   updateAdminAccountPassword,
+  updateAdminAccountProfile,
   verifyAdminResetOtp,
 } from '../../services/adminAuthService.js';
+import {
+  confirmCurrentEmailVerification,
+  confirmUserEmailChange,
+  requestCurrentEmailVerification,
+  requestUserEmailChange,
+} from '../../services/profileService.js';
 
 export const adminLogin = asyncHandler(async (req, res) => {
   const { email, password, keepSignedIn } = req.body;
@@ -85,10 +92,98 @@ export const updateAdminPassword = asyncHandler(async (req, res) => {
   });
 });
 
+export const updateAdminProfile = asyncHandler(async (req, res) => {
+  const { name, phone, removeProfileImage } = req.body;
+  const admin = await updateAdminAccountProfile({
+    adminId: req.user._id,
+    name,
+    phone,
+    file: req.file,
+    removeProfileImage,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Admin profile updated successfully',
+    admin: sanitizeAdmin(admin),
+  });
+});
+
+export const requestAdminCurrentEmailOtp = asyncHandler(async (req, res) => {
+  const { currentEmail } = req.body;
+  requireFields([currentEmail], 'Current registered email address is required');
+
+  const { email, expiresAt } = await requestCurrentEmailVerification({
+    userId: req.user._id,
+    currentEmail: req.user.email,
+    enteredEmail: currentEmail,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: `Verification OTP sent to ${email}`,
+    expiresAt,
+  });
+});
+
+export const verifyAdminCurrentEmail = asyncHandler(async (req, res) => {
+  const { currentEmail, otp } = req.body;
+  requireFields([currentEmail, otp], 'Current email and 6-digit OTP are required');
+
+  const { verifiedUntil } = await confirmCurrentEmailVerification({
+    userId: req.user._id,
+    currentEmail: req.user.email,
+    enteredEmail: currentEmail,
+    otp,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Current email verified! You can now enter your new email address.',
+    verifiedUntil,
+  });
+});
+
+export const requestAdminEmailChangeOtp = asyncHandler(async (req, res) => {
+  const { newEmail } = req.body;
+  requireFields([newEmail], 'New email address is required');
+
+  const { email, expiresAt } = await requestUserEmailChange({
+    userId: req.user._id,
+    currentEmail: req.user.email,
+    newEmail,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: `Verification OTP sent to ${email}`,
+    expiresAt,
+  });
+});
+
+export const verifyAdminEmailChange = asyncHandler(async (req, res) => {
+  const { newEmail, otp } = req.body;
+  requireFields([newEmail, otp], 'New email and OTP are required');
+
+  const admin = await confirmUserEmailChange({
+    userId: req.user._id,
+    currentEmail: req.user.email,
+    newEmail,
+    otp,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Email address updated and verified!',
+    email: admin.email,
+    admin: sanitizeAdmin(admin),
+  });
+});
+
 export const getAdminMe = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
-    admin: req.user,
+    admin: sanitizeAdmin(req.user),
   });
 });
 

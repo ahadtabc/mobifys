@@ -147,7 +147,7 @@ export default function UserSignup() {
           </div>
 
           <div className="field-block">
-            <label htmlFor="signup-phone">MOBILE NUMBER (INDIA)</label>
+            <label htmlFor="signup-phone">Phone Number</label>
             <div className={`field-input-box phone-input-box ${errors.phone ? 'has-error' : ''}`}>
               <Phone className="field-icon-left" size={16} />
               <span className="phone-country-code">+91</span>

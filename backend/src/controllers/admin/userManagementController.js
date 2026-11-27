@@ -12,6 +12,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     limit: req.query.limit,
     search: req.query.search,
     status: req.query.status,
+    sort: req.query.sort,
   });
 
   res.status(200).json({

@@ -2,10 +2,15 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import ApiError from '../utils/ApiError.js';
 import { createAndSendOtp, verifyOtpCode } from './otpService.js';
+import { syncProfileImage } from './s3Service.js';
 import { revokeAllUserTokens } from './tokenService.js';
-import { normalizeEmail } from '../validators/authValidator.js';
+import {
+  normalizeEmail,
+  validateFullName,
+  validateIndianPhone,
+} from '../validators/authValidator.js';
 
-const ADMIN_ROLES = ['admin', 'super_admin'];
+const ADMIN_ROLES = ['admin'];
 
 export const authenticateAdmin = async ({ email, password }) => {
   const admin = await User.findOne({
@@ -17,7 +22,7 @@ export const authenticateAdmin = async ({ email, password }) => {
     throw new ApiError(401, 'Invalid admin credentials');
   }
 
-  if (admin.isBlocked) {
+  if (admin.status === 'blocked') {
     throw new ApiError(403, 'This admin account is disabled');
   }
 
@@ -94,5 +99,34 @@ export const updateAdminAccountPassword = async ({ adminId, currentPassword, new
   await admin.save();
   await revokeAllUserTokens(admin._id, 'admin');
 
+  return admin;
+};
+
+export const updateAdminAccountProfile = async ({
+  adminId,
+  name,
+  phone,
+  file,
+  removeProfileImage,
+}) => {
+  const admin = await User.findById(adminId);
+  if (!admin || !ADMIN_ROLES.includes(admin.role)) {
+    throw new ApiError(404, 'Administrator not found');
+  }
+
+  admin.name = validateFullName(name);
+  if (phone !== undefined) {
+    const trimmedPhone = typeof phone === 'string' ? phone.trim() : '';
+    admin.phone = trimmedPhone ? validateIndianPhone(trimmedPhone) : '';
+  }
+
+  admin.profileImage = await syncProfileImage({
+    currentImageUrl: admin.profileImage,
+    file,
+    removeImage: removeProfileImage === 'true' || removeProfileImage === true,
+    folder: 'profiles',
+  });
+
+  await admin.save();
   return admin;
 };

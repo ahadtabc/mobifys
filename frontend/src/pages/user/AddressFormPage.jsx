@@ -314,7 +314,6 @@ export default function AddressFormPage() {
                 <input
                   type="radio"
                   value={lbl}
-                  style={{ accentColor: '#ff5722' }}
                   {...register('label')}
                 />
                 <span>{lbl}</span>

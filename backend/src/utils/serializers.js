@@ -12,5 +12,7 @@ export const sanitizeAdmin = (admin) => ({
   _id: admin._id,
   name: admin.name,
   email: admin.email,
+  phone: admin.phone || '',
+  profileImage: admin.profileImage || '',
   role: admin.role,
 });

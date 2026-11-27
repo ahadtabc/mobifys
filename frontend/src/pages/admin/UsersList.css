@@ -108,7 +108,8 @@
 
 .toolbar-controls {
   display: flex;
-  flex: 1 1 480px;
+  flex: 1 1 auto;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
@@ -118,7 +119,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 240px;
+  flex: 1 1 200px;
+  min-width: 180px;
   max-width: 340px;
 }
 
@@ -212,10 +214,18 @@
   background-color: #f9fafb;
 }
 
-.sort-hint {
-  font-size: 11px;
-  color: var(--text-light);
+.sort-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+.sort-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -232,6 +242,7 @@
 
 .users-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -245,12 +256,15 @@
   color: var(--text-light);
   background-color: #f9fafb;
   border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .users-table td {
   padding: 14px 20px;
   font-size: 12px;
   border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
 }
 
 .users-table tbody tr:hover {
@@ -412,12 +426,8 @@
   color: #ffffff;
 }
 
-.customers-table {
-  min-width: 640px;
-}
-
 @media (max-width: 640px) {
-  .customers-page {
+  .users-page {
     gap: 18px;
   }
 
@@ -442,8 +452,13 @@
     flex: 1;
   }
 
-  .sort-hint {
+  .sort-control-group {
+    width: 100%;
     margin-left: 0;
+  }
+
+  .sort-select {
+    flex: 1;
   }
 
   .pagination-footer {

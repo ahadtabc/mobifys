@@ -25,6 +25,9 @@ const configurePassport = () => {
           let user = await User.findOne({ email });
 
           if (user) {
+            if (user.role !== 'user') {
+              return done(null, false, { message: 'Use the admin portal to sign in' });
+            }
             if (user.isBlocked) {
               return done(null, false, { message: 'Your account has been blocked' });
             }

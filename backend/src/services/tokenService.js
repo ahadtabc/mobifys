@@ -28,7 +28,7 @@ const SCOPE_CONFIG = {
     refreshCookieName: 'mobifys_admin_refresh_token',
     refreshCookiePath: '/api/admin/auth',
     audience: 'mobifys-admin',
-    allowedRoles: ['admin', 'super_admin'],
+    allowedRoles: ['admin'],
   },
 };
 
@@ -39,8 +39,7 @@ const UNIT_MS = {
   d: 24 * 60 * 60 * 1000,
 };
 
-export const getScopeForRole = (role) =>
-  role === 'admin' || role === 'super_admin' ? 'admin' : 'user';
+export const getScopeForRole = (role) => (role === 'admin' ? 'admin' : 'user');
 
 export const getScopeConfig = (scope) => {
   const cfg = SCOPE_CONFIG[scope];
@@ -288,7 +287,7 @@ export const rotateRefreshToken = async ({ req, res, scope }) => {
     return { ok: false, status: 401, message: 'Account not found' };
   }
 
-  if (user.isBlocked) {
+  if (user.isBlocked || user.status === 'blocked') {
     await revokeAllUserTokens(user._id, scope);
     clearAuthCookies(res, scope);
     return {

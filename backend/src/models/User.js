@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 
+const userOnlyDefault = (factory) =>
+  function () {
+    if (this.role !== 'user') return undefined;
+    return typeof factory === 'function' ? factory() : factory;
+  };
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -30,7 +36,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin', 'super_admin'],
+      enum: ['user', 'admin'],
       default: 'user',
     },
     status: {
@@ -40,7 +46,7 @@ const userSchema = new mongoose.Schema(
     },
     isBlocked: {
       type: Boolean,
-      default: false,
+      default: userOnlyDefault(false),
     },
     mustChangePassword: {
       type: Boolean,
@@ -52,24 +58,31 @@ const userSchema = new mongoose.Schema(
     },
     walletBalance: {
       type: Number,
-      default: 0,
+      default: userOnlyDefault(0),
     },
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-      },
-    ],
+    wishlist: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+        },
+      ],
+      default: userOnlyDefault(() => []),
+    },
     referralCode: {
       type: String,
       unique: true,
+      sparse: true,
     },
     referredBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null,
+      default: userOnlyDefault(null),
     },
-    googleId: { type: String, default: null },
+    googleId: {
+      type: String,
+      default: userOnlyDefault(null),
+    },
   },
   { timestamps: true }
 );
@@ -78,9 +91,20 @@ userSchema.index({ role: 1, isBlocked: 1, createdAt: -1 });
 userSchema.index({ googleId: 1 }, { sparse: true });
 
 userSchema.pre('save', async function () {
-  if (!this.referralCode) {
-    this.referralCode = 'MOB-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+  if (this.role === 'user') {
+    if (!this.referralCode) {
+      this.referralCode = 'MOB-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+    }
+    return;
   }
+
+  // Admins do not store user-only referral, wallet, wishlist, block, or SSO fields
+  this.referralCode = undefined;
+  this.referredBy = undefined;
+  this.isBlocked = undefined;
+  this.walletBalance = undefined;
+  this.wishlist = undefined;
+  this.googleId = undefined;
 });
 
 const User = mongoose.model('User', userSchema);

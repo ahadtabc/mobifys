@@ -20,11 +20,13 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .details-avatar-lg {
   width: 56px;
   height: 56px;
+  flex-shrink: 0;
   border-radius: 16px;
   background-color: var(--primary);
   color: #ffffff;
@@ -37,8 +39,35 @@
 
 .details-name-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill.active {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+}
+
+.status-pill.blocked {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.wallet-text {
+  font-weight: 600;
+  color: var(--success-text);
 }
 
 .details-name-row h1 {

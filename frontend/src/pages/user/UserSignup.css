@@ -17,19 +17,24 @@
   color: var(--text-light);
 }
 
-.phone-input-box .phone-country-code {
+.field-input-box.phone-input-box .phone-country-code {
   position: absolute;
   left: 38px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1;
   color: var(--text-muted);
   padding-right: 8px;
   border-right: 1px solid var(--border-color);
   pointer-events: none;
 }
 
-.phone-input-box input {
-  padding-left: 78px;
+.field-input-box.phone-input-box input {
+  padding: 11px 14px 11px 84px;
 }
 
 .password-rules-row {

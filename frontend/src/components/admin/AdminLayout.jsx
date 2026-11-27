@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   LayoutDashboard,
@@ -45,9 +45,12 @@ export default function AdminLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const currentPage = navItems.find(
-    (item) => pathname === item.path || pathname.startsWith(`${item.path}/`),
-  )?.name || 'Dashboard';
+  const currentPage =
+    pathname === '/admin/profile'
+      ? 'Admin Profile'
+      : navItems.find(
+          (item) => pathname === item.path || pathname.startsWith(`${item.path}/`)
+        )?.name || 'Dashboard';
 
   const adminName = admin?.name || 'Admin User';
   const adminInitials = adminName
@@ -164,14 +167,21 @@ export default function AdminLayout() {
           </nav>
 
           <div className="topbar-actions">
-            <div className="admin-profile-pill">
+            <Link
+              to="/admin/profile"
+              className={`admin-profile-pill ${pathname === '/admin/profile' ? 'is-active' : ''}`}
+              title="Open Admin Profile"
+            >
               {admin?.profileImage ? (
                 <img src={admin.profileImage} alt="" className="admin-avatar-circle" />
               ) : (
                 <span className="admin-avatar-circle">{adminInitials}</span>
               )}
-              <span className="admin-profile-name">{adminName}</span>
-            </div>
+              <span className="admin-profile-copy">
+                <span className="admin-profile-name">{adminName}</span>
+                <span className="admin-role-badge">ADMIN</span>
+              </span>
+            </Link>
 
             <span className="admin-topbar-divider" aria-hidden="true" />
 
