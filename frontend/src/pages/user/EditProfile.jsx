@@ -121,7 +121,9 @@ export default function EditProfile() {
         setCurrentEmail(data.user.email || '');
         setPreviewUrl(data.user.profileImage || '');
       })
-      .catch(() => toast.error('Failed to load profile data'));
+      .catch((err) => {
+        if (!err?.isBlockedLogout) toast.error('Failed to load profile data');
+      });
   }, [resetProfileForm]);
 
   const handleFileChange = (e) => {

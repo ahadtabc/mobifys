@@ -1,13 +1,13 @@
 import asyncHandler from '../../utils/asyncHandler.js';
 import { validateObjectId } from '../../validators/authValidator.js';
 import {
-  getCustomerDetails,
-  listCustomers,
-  toggleCustomerBlockStatus,
+  getUserDetails,
+  listUsers,
+  toggleUserBlockStatus,
 } from '../../services/userManagementService.js';
 
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const { users, pagination, stats } = await listCustomers({
+  const { users, pagination, stats } = await listUsers({
     page: req.query.page,
     limit: req.query.limit,
     search: req.query.search,
@@ -24,8 +24,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 });
 
 export const getUserById = asyncHandler(async (req, res) => {
-  validateObjectId(req.params.id, 'Customer');
-  const { user, addresses } = await getCustomerDetails(req.params.id);
+  validateObjectId(req.params.id, 'User');
+  const { user, addresses } = await getUserDetails(req.params.id);
 
   res.status(200).json({
     success: true,
@@ -35,8 +35,8 @@ export const getUserById = asyncHandler(async (req, res) => {
 });
 
 export const toggleBlockUser = asyncHandler(async (req, res) => {
-  validateObjectId(req.params.id, 'Customer');
-  const user = await toggleCustomerBlockStatus(req.params.id);
+  validateObjectId(req.params.id, 'User');
+  const user = await toggleUserBlockStatus(req.params.id);
 
   res.status(200).json({
     success: true,

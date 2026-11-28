@@ -6,6 +6,7 @@ import {
   resendUserOtp,
   loginUser,
   forgotUserPassword,
+  verifyForgotPasswordOtp,
   resetUserPassword,
   getUserMe,
   refreshUserToken,
@@ -24,6 +25,7 @@ router.post('/resend-otp', resendUserOtp);
 router.post('/login', loginUser);
 router.post('/refresh', refreshUserToken);
 router.post('/forgot-password', forgotUserPassword);
+router.post('/verify-otp', verifyForgotPasswordOtp);
 router.post('/reset-password', resetUserPassword);
 router.get('/me', protectUser, getUserMe);
 router.post('/logout', logoutUser);

@@ -28,7 +28,7 @@ const configurePassport = () => {
             if (user.role !== 'user') {
               return done(null, false, { message: 'Use the admin portal to sign in' });
             }
-            if (user.isBlocked) {
+            if (user.isBlocked || user.status === 'blocked') {
               return done(null, false, { message: 'Your account has been blocked' });
             }
             if (!user.googleId) {

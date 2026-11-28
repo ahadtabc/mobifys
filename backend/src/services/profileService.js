@@ -54,7 +54,7 @@ export const updateProfileDetails = async ({ userId, name, phone, file, removePr
 const assertCurrentEmailVerified = async (userId, currentEmail) => {
   const verifiedRecord = await Otp.findOne({
     userId,
-    identifier: currentEmail,
+    email: currentEmail,
     purpose: 'current_email_verify',
     verifiedAt: { $ne: null },
     expiresAt: { $gt: new Date() },
@@ -76,7 +76,7 @@ export const requestCurrentEmailVerification = async ({ userId, currentEmail, en
   await Otp.deleteMany({ userId, purpose: 'current_email_verify' });
 
   const { expiresAt } = await createAndSendOtp({
-    identifier: currentEmail,
+    email: currentEmail,
     purpose: 'current_email_verify',
     userId,
   });
@@ -91,7 +91,7 @@ export const confirmCurrentEmailVerification = async ({ userId, currentEmail, en
   }
 
   const record = await verifyOtpCode({
-    identifier: currentEmail,
+    email: currentEmail,
     otp: otp.trim(),
     purpose: 'current_email_verify',
   });
@@ -117,7 +117,7 @@ export const requestUserEmailChange = async ({ userId, currentEmail, newEmail })
   }
 
   const { expiresAt } = await createAndSendOtp({
-    identifier: cleanNewEmail,
+    email: cleanNewEmail,
     purpose: 'email_change',
     userId,
   });
@@ -129,7 +129,7 @@ export const confirmUserEmailChange = async ({ userId, currentEmail, newEmail, o
   await assertCurrentEmailVerified(userId, currentEmail);
 
   const cleanNewEmail = normalizeEmail(newEmail);
-  await verifyOtpCode({ identifier: cleanNewEmail, otp: otp.trim(), purpose: 'email_change' });
+  await verifyOtpCode({ email: cleanNewEmail, otp: otp.trim(), purpose: 'email_change' });
 
   const user = await User.findByIdAndUpdate(
     userId,

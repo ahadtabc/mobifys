@@ -259,8 +259,19 @@ export const rotateRefreshToken = async ({ req, res, scope }) => {
   }
 
   if (existingRecord.revokedAt) {
+    const blockedUser = await User.findById(existingRecord.userId)
+      .select('isBlocked status')
+      .lean();
     await revokeFamily(existingRecord.familyId);
     clearAuthCookies(res, scope);
+    if (blockedUser && (blockedUser.isBlocked || blockedUser.status === 'blocked')) {
+      return {
+        ok: false,
+        status: 403,
+        code: 'ACCOUNT_BLOCKED',
+        message: 'Your account has been blocked. Contact Mobifys support.',
+      };
+    }
     return { ok: false, status: 401, message: 'Session invalidated for security, please log in again' };
   }
 
@@ -293,6 +304,7 @@ export const rotateRefreshToken = async ({ req, res, scope }) => {
     return {
       ok: false,
       status: 403,
+      code: 'ACCOUNT_BLOCKED',
       message: 'Your account has been blocked. Contact Mobifys support.',
     };
   }

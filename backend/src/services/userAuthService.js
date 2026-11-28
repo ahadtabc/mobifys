@@ -1,13 +1,20 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import Otp from '../models/Otp.js';
 import ApiError from '../utils/ApiError.js';
 import { createAndSendOtp, verifyOtpCode } from './otpService.js';
 import { revokeAllUserTokens } from './tokenService.js';
 import { normalizeEmail } from '../validators/authValidator.js';
 
+const FORGOT_PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
+
 export const signupUserAccount = async ({ name, email, phone, password }) => {
   const cleanEmail = normalizeEmail(email);
   const existingUser = await User.findOne({ email: cleanEmail });
+
+  if (existingUser && (existingUser.isBlocked || existingUser.status === 'blocked')) {
+    throw new ApiError(403, 'Your account has been blocked by Admin. Contact support.');
+  }
 
   if (existingUser && existingUser.status === 'active') {
     throw new ApiError(409, 'Email is already registered');
@@ -33,7 +40,7 @@ export const signupUserAccount = async ({ name, email, phone, password }) => {
   }
 
   const { expiresAt } = await createAndSendOtp({
-    identifier: cleanEmail,
+    email: cleanEmail,
     purpose: 'signup',
     userId: user._id,
   });
@@ -43,7 +50,7 @@ export const signupUserAccount = async ({ name, email, phone, password }) => {
 
 export const verifyUserSignupOtp = async ({ email, otp }) => {
   const cleanEmail = normalizeEmail(email);
-  await verifyOtpCode({ identifier: cleanEmail, otp: otp.trim(), purpose: 'signup' });
+  await verifyOtpCode({ email: cleanEmail, otp: otp.trim(), purpose: 'signup' });
 
   const user = await User.findOne({ email: cleanEmail });
   if (!user) {
@@ -57,13 +64,26 @@ export const verifyUserSignupOtp = async ({ email, otp }) => {
 
 export const resendUserOtpCode = async ({ email, purpose }) => {
   const cleanEmail = normalizeEmail(email);
-  const user = await User.findOne({ email: cleanEmail, role: 'user' }).select('_id').lean();
+  const user = await User.findOne({ email: cleanEmail, role: 'user' })
+    .select('_id isBlocked status')
+    .lean();
   if (!user) {
     throw new ApiError(404, 'Account not found');
   }
+  if (user.isBlocked || user.status === 'blocked') {
+    throw new ApiError(403, 'Your account has been blocked by Admin. Contact support.');
+  }
+
+  if (purpose === 'forgot_password') {
+    await Otp.deleteMany({
+      email: cleanEmail,
+      purpose: 'forgot_password',
+      verifiedAt: { $ne: null },
+    });
+  }
 
   const { expiresAt } = await createAndSendOtp({
-    identifier: cleanEmail,
+    email: cleanEmail,
     purpose,
     userId: user._id,
   });
@@ -78,7 +98,7 @@ export const authenticateUser = async ({ email, password }) => {
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  if (user.isBlocked) {
+  if (user.isBlocked || user.status === 'blocked') {
     throw new ApiError(403, 'Your account has been blocked by Admin. Contact support.');
   }
 
@@ -102,13 +122,20 @@ export const authenticateUser = async ({ email, password }) => {
 
 export const sendUserForgotPasswordOtp = async ({ email }) => {
   const cleanEmail = normalizeEmail(email);
-  const user = await User.findOne({ email: cleanEmail, role: 'user' }).select('_id').lean();
+  const user = await User.findOne({ email: cleanEmail, role: 'user' })
+    .select('_id isBlocked status')
+    .lean();
   if (!user) {
     throw new ApiError(404, 'No account found with this email');
   }
+  if (user.isBlocked || user.status === 'blocked') {
+    throw new ApiError(403, 'Your account has been blocked by Admin. Contact support.');
+  }
+
+  await Otp.deleteMany({ email: cleanEmail, purpose: 'forgot_password' });
 
   const { expiresAt } = await createAndSendOtp({
-    identifier: cleanEmail,
+    email: cleanEmail,
     purpose: 'forgot_password',
     userId: user._id,
   });
@@ -116,9 +143,40 @@ export const sendUserForgotPasswordOtp = async ({ email }) => {
   return { email: cleanEmail, expiresAt };
 };
 
-export const resetUserPasswordWithOtp = async ({ email, otp, newPassword }) => {
+export const verifyUserForgotPasswordOtp = async ({ email, otp }) => {
   const cleanEmail = normalizeEmail(email);
-  await verifyOtpCode({ identifier: cleanEmail, otp: otp.trim(), purpose: 'forgot_password' });
+  const user = await User.findOne({ email: cleanEmail, role: 'user' }).select('_id').lean();
+  if (!user) {
+    throw new ApiError(404, 'No account found with this email');
+  }
+
+  const record = await verifyOtpCode({
+    email: cleanEmail,
+    otp: otp.trim(),
+    purpose: 'forgot_password',
+  });
+
+  // Keep the verified OTP alive during the password reset window.
+  record.expiresAt = new Date(Date.now() + FORGOT_PASSWORD_RESET_WINDOW_MS);
+  await record.save();
+
+  return { email: cleanEmail, verifiedUntil: record.expiresAt };
+};
+
+export const resetUserPasswordWithOtp = async ({ email, newPassword }) => {
+  const cleanEmail = normalizeEmail(email);
+  const verifiedOtp = await Otp.findOne({
+    email: cleanEmail,
+    purpose: 'forgot_password',
+    verifiedAt: { $ne: null },
+    expiresAt: { $gt: new Date() },
+  })
+    .select('_id')
+    .lean();
+
+  if (!verifiedOtp) {
+    throw new ApiError(403, 'Please verify your OTP before resetting your password');
+  }
 
   const user = await User.findOne({ email: cleanEmail, role: 'user' });
   if (!user) {
@@ -128,5 +186,8 @@ export const resetUserPasswordWithOtp = async ({ email, otp, newPassword }) => {
   user.passwordHash = await bcrypt.hash(newPassword, 10);
   user.passwordChangedAt = new Date();
   await user.save();
-  await revokeAllUserTokens(user._id, 'user');
+  await Promise.all([
+    Otp.deleteMany({ email: cleanEmail, purpose: 'forgot_password' }),
+    revokeAllUserTokens(user._id, 'user'),
+  ]);
 };

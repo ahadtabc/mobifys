@@ -53,7 +53,7 @@ export default function UsersList() {
     return data;
   }, [appliedSearch, statusFilter, sortBy, page]);
 
-  const applyCustomersResponse = useCallback((data) => {
+  const applyUsersResponse = useCallback((data) => {
     setUsers(data.users);
     setPagination(data.pagination);
     if (data.stats) setStats(data.stats);
@@ -63,7 +63,7 @@ export default function UsersList() {
     let active = true;
     fetchUsers()
       .then((data) => {
-        if (active) applyCustomersResponse(data);
+        if (active) applyUsersResponse(data);
       })
       .catch((err) => {
         if (active) {
@@ -77,13 +77,13 @@ export default function UsersList() {
     return () => {
       active = false;
     };
-  }, [fetchUsers, applyCustomersResponse]);
+  }, [fetchUsers, applyUsersResponse]);
 
   const handleRefresh = async () => {
     try {
       setLoading(true);
       const data = await fetchUsers();
-      applyCustomersResponse(data);
+      applyUsersResponse(data);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to refresh users');
     } finally {
@@ -113,7 +113,7 @@ export default function UsersList() {
       setSelectedUser(null);
       setLoading(true);
       const refreshed = await fetchUsers();
-      applyCustomersResponse(refreshed);
+      applyUsersResponse(refreshed);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
     } finally {
@@ -139,14 +139,14 @@ export default function UsersList() {
         </p>
       </div>
 
-      <div className="customer-stats-grid">
+      <div className="user-stats-grid">
         <button
           type="button"
           onClick={() => {
             setStatusFilter('all');
             setPage(1);
           }}
-          className={`customer-stat-card ${statusFilter === 'all' ? 'is-selected' : ''}`}
+          className={`user-stat-card ${statusFilter === 'all' ? 'is-selected' : ''}`}
         >
           <div className="stat-icon-box total">
             <Users size={18} />
@@ -163,7 +163,7 @@ export default function UsersList() {
             setStatusFilter('active');
             setPage(1);
           }}
-          className={`customer-stat-card ${statusFilter === 'active' ? 'is-selected' : ''}`}
+          className={`user-stat-card ${statusFilter === 'active' ? 'is-selected' : ''}`}
         >
           <div className="stat-icon-box active">
             <UserCheck size={18} />
@@ -180,7 +180,7 @@ export default function UsersList() {
             setStatusFilter('blocked');
             setPage(1);
           }}
-          className={`customer-stat-card ${statusFilter === 'blocked' ? 'is-selected' : ''}`}
+          className={`user-stat-card ${statusFilter === 'blocked' ? 'is-selected' : ''}`}
         >
           <div className="stat-icon-box blocked">
             <Ban size={18} />

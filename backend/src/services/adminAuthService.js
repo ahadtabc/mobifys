@@ -47,7 +47,7 @@ export const sendAdminForgotPasswordOtp = async ({ email }) => {
   }
 
   const { expiresAt } = await createAndSendOtp({
-    identifier: admin.email,
+    email: admin.email,
     purpose: 'admin_reset',
     userId: admin._id,
   });
@@ -57,7 +57,7 @@ export const sendAdminForgotPasswordOtp = async ({ email }) => {
 
 export const verifyAdminResetOtp = async ({ email, otp }) => {
   await verifyOtpCode({
-    identifier: normalizeEmail(email),
+    email: normalizeEmail(email),
     otp: otp.trim(),
     purpose: 'admin_reset',
   });
@@ -74,7 +74,6 @@ export const resetAdminAccountPassword = async ({ email, newPassword }) => {
   }
 
   admin.passwordHash = await bcrypt.hash(newPassword, 10);
-  admin.mustChangePassword = false;
   admin.passwordChangedAt = new Date();
   await admin.save();
   await revokeAllUserTokens(admin._id, 'admin');
@@ -94,7 +93,6 @@ export const updateAdminAccountPassword = async ({ adminId, currentPassword, new
   }
 
   admin.passwordHash = await bcrypt.hash(newPassword, 10);
-  admin.mustChangePassword = false;
   admin.passwordChangedAt = new Date();
   await admin.save();
   await revokeAllUserTokens(admin._id, 'admin');

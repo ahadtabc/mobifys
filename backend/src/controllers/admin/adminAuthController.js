@@ -30,7 +30,6 @@ export const adminLogin = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Signed in to Admin Console',
-    mustChangePassword: admin.mustChangePassword,
     admin: sanitizeAdmin(admin),
   });
 });
@@ -190,7 +189,11 @@ export const getAdminMe = asyncHandler(async (req, res) => {
 export const refreshAdminToken = asyncHandler(async (req, res) => {
   const result = await rotateRefreshToken({ req, res, scope: 'admin' });
   if (!result.ok) {
-    return res.status(result.status).json({ success: false, message: result.message });
+    return res.status(result.status).json({
+      success: false,
+      ...(result.code ? { code: result.code } : {}),
+      message: result.message,
+    });
   }
 
   res.status(200).json({

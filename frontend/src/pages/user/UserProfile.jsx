@@ -39,7 +39,7 @@ export default function UserProfile() {
         dispatch(setUser(data.user));
       })
       .catch((err) => {
-        if (active) {
+        if (active && !err?.isBlockedLogout) {
           toast.error(err.response?.data?.message || 'Failed to load profile');
         }
       })
@@ -134,7 +134,7 @@ export default function UserProfile() {
           <div>
             <div className="profile-name-line">
               <h2>{profile.name}</h2>
-              <span className="verified-customer-pill">● Verified Customer</span>
+              <span className="verified-user-pill">● Verified User</span>
             </div>
             <div className="profile-contact-meta">
               {profile.phone ? `${profile.phone} • ` : ''}

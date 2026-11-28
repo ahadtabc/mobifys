@@ -12,7 +12,7 @@ const USER_SORT_OPTIONS = {
   wallet_asc: { walletBalance: 1, createdAt: -1 },
 };
 
-export const listCustomers = async ({
+export const listUsers = async ({
   page = 1,
   limit = 10,
   search = '',
@@ -55,7 +55,7 @@ export const listCustomers = async ({
     usersQuery.collation({ locale: 'en', strength: 2 });
   }
 
-  const [totalUsers, users, totalCustomers, activeCustomers, blockedCustomers] = await Promise.all([
+  const [totalUsers, users, totalAllUsers, activeUsers, blockedUsers] = await Promise.all([
     User.countDocuments(query),
     usersQuery,
     User.countDocuments({ role: 'user' }),
@@ -76,14 +76,14 @@ export const listCustomers = async ({
       showingTo: Math.min(skip + parsedLimit, totalUsers),
     },
     stats: {
-      total: totalCustomers,
-      active: activeCustomers,
-      blocked: blockedCustomers,
+      total: totalAllUsers,
+      active: activeUsers,
+      blocked: blockedUsers,
     },
   };
 };
 
-export const getCustomerDetails = async (userId) => {
+export const getUserDetails = async (userId) => {
   const [user, addresses] = await Promise.all([
     User.findOne({ _id: userId, role: 'user' }).select('-passwordHash').lean(),
     Address.find({ userId, status: 'active' })
@@ -92,16 +92,16 @@ export const getCustomerDetails = async (userId) => {
   ]);
 
   if (!user) {
-    throw new ApiError(404, 'Customer not found');
+    throw new ApiError(404, 'User not found');
   }
 
   return { user, addresses };
 };
 
-export const toggleCustomerBlockStatus = async (userId) => {
+export const toggleUserBlockStatus = async (userId) => {
   const user = await User.findOne({ _id: userId, role: 'user' });
   if (!user) {
-    throw new ApiError(404, 'Customer not found');
+    throw new ApiError(404, 'User not found');
   }
 
   user.isBlocked = !user.isBlocked;

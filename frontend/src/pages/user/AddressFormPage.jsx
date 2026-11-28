@@ -75,7 +75,9 @@ export default function AddressFormPage() {
           });
         }
       })
-      .catch(() => toast.error('Failed to load address'));
+      .catch((err) => {
+        if (!err?.isBlockedLogout) toast.error('Failed to load address');
+      });
   }, [id, isEdit, reset]);
 
   useEffect(() => {

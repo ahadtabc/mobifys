@@ -23,8 +23,8 @@ export default function ManageAddresses() {
       .then(({ data }) => {
         if (active) setAddresses(data.addresses);
       })
-      .catch(() => {
-        if (active) toast.error('Failed to load addresses');
+      .catch((err) => {
+        if (active && !err?.isBlockedLogout) toast.error('Failed to load addresses');
       })
       .finally(() => {
         if (active) setLoading(false);

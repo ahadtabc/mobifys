@@ -7,7 +7,7 @@ const otpSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
-    identifier: {
+    email: {
       type: String,
       required: true,
       lowercase: true,
@@ -38,7 +38,7 @@ const otpSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-otpSchema.index({ identifier: 1, purpose: 1, verifiedAt: 1, createdAt: -1 });
+otpSchema.index({ email: 1, purpose: 1, verifiedAt: 1, createdAt: -1 });
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Otp = mongoose.model('Otp', otpSchema);

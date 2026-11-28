@@ -19,7 +19,6 @@ const seedData = async () => {
         passwordHash,
         role: 'admin',
         status: 'active',
-        mustChangePassword: false,
       });
       console.log('Admin created');
     } else {

@@ -18,6 +18,7 @@ import {
   resetUserPasswordWithOtp,
   sendUserForgotPasswordOtp,
   signupUserAccount,
+  verifyUserForgotPasswordOtp,
   verifyUserSignupOtp,
 } from '../../services/userAuthService.js';
 
@@ -95,16 +96,31 @@ export const forgotUserPassword = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: `Password reset OTP sent to ${cleanEmail}`,
+    email: cleanEmail,
     expiresAt,
   });
 });
 
+export const verifyForgotPasswordOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  requireFields([email, otp], 'Email and 6-digit OTP are required');
+
+  const { email: cleanEmail, verifiedUntil } = await verifyUserForgotPasswordOtp({ email, otp });
+
+  res.status(200).json({
+    success: true,
+    message: 'OTP verified. You can now set a new password.',
+    email: cleanEmail,
+    verifiedUntil,
+  });
+});
+
 export const resetUserPassword = asyncHandler(async (req, res) => {
-  const { email, otp, newPassword, confirmPassword } = req.body;
-  requireFields([email, otp, newPassword, confirmPassword], 'All fields are required');
+  const { email, newPassword, confirmPassword } = req.body;
+  requireFields([email, newPassword, confirmPassword], 'All fields are required');
   validatePasswordPair(newPassword, confirmPassword);
 
-  await resetUserPasswordWithOtp({ email, otp, newPassword });
+  await resetUserPasswordWithOtp({ email, newPassword });
 
   res.status(200).json({
     success: true,
@@ -122,7 +138,11 @@ export const getUserMe = asyncHandler(async (req, res) => {
 export const refreshUserToken = asyncHandler(async (req, res) => {
   const result = await rotateRefreshToken({ req, res, scope: 'user' });
   if (!result.ok) {
-    return res.status(result.status).json({ success: false, message: result.message });
+    return res.status(result.status).json({
+      success: false,
+      ...(result.code ? { code: result.code } : {}),
+      message: result.message,
+    });
   }
 
   res.status(200).json({

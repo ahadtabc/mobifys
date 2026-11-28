@@ -57,10 +57,12 @@ export default function UserLayout() {
         if (active) {
           setDefaultAddress(data.addresses.find((address) => address.isDefault) || null);
         }
-      } catch {
+      } catch (err) {
         if (active) {
           setDefaultAddress(null);
-          toast.error('Could not load your delivery address');
+          if (!err?.isBlockedLogout) {
+            toast.error('Could not load your delivery address');
+          }
         }
       }
     };

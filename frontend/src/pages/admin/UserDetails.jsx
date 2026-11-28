@@ -8,7 +8,7 @@ import './UserDetails.css';
 
 export default function UserDetails() {
   const { id } = useParams();
-  const [customer, setCustomer] = useState(null);
+  const [user, setUser] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -24,7 +24,7 @@ export default function UserDetails() {
     loadDetails()
       .then((data) => {
         if (!active) return;
-        setCustomer(data.user);
+        setUser(data.user);
         setAddresses(data.addresses);
       })
       .catch((err) => {
@@ -48,7 +48,7 @@ export default function UserDetails() {
       toast.success(data.message);
       setShowModal(false);
       const refreshed = await loadDetails();
-      setCustomer(refreshed.user);
+      setUser(refreshed.user);
       setAddresses(refreshed.addresses);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed');
@@ -58,25 +58,25 @@ export default function UserDetails() {
   };
 
   if (loading) return <div style={{ fontSize: '12px', color: '#6b7280' }}>Loading profile...</div>;
-  if (!customer) return <div style={{ fontSize: '12px', color: '#dc2626' }}>User not found.</div>;
+  if (!user) return <div style={{ fontSize: '12px', color: '#dc2626' }}>User not found.</div>;
 
   return (
     <div className="user-details-page">
       <div className="details-header-card">
         <div className="details-identity">
           <div className="details-avatar-lg">
-            {customer.name?.slice(0, 2).toUpperCase()}
+            {user.name?.slice(0, 2).toUpperCase()}
           </div>
           <div>
             <div className="details-name-row">
-              <h1>{customer.name}</h1>
-              <span className={`status-pill ${customer.isBlocked ? 'blocked' : 'active'}`}>
-                {customer.isBlocked ? 'Blocked' : 'Active'}
+              <h1>{user.name}</h1>
+              <span className={`status-pill ${user.isBlocked ? 'blocked' : 'active'}`}>
+                {user.isBlocked ? 'Blocked' : 'Active'}
               </span>
             </div>
             <p className="details-meta">
-              Referral Code: <strong>{customer.referralCode}</strong> • Joined{' '}
-              {new Date(customer.createdAt).toLocaleDateString('en-IN')}
+              Referral Code: <strong>{user.referralCode}</strong> • Joined{' '}
+              {new Date(user.createdAt).toLocaleDateString('en-IN')}
             </p>
           </div>
         </div>
@@ -87,10 +87,10 @@ export default function UserDetails() {
           </Link>
           <button
             onClick={() => setShowModal(true)}
-            className={`btn-toggle-status ${customer.isBlocked ? 'unblock' : 'block'}`}
+            className={`btn-toggle-status ${user.isBlocked ? 'unblock' : 'block'}`}
           >
-            {customer.isBlocked ? <CheckCircle size={14} /> : <Ban size={14} />}
-            {customer.isBlocked ? 'Unblock User' : 'Block User'}
+            {user.isBlocked ? <CheckCircle size={14} /> : <Ban size={14} />}
+            {user.isBlocked ? 'Unblock User' : 'Block User'}
           </button>
         </div>
       </div>
@@ -99,15 +99,15 @@ export default function UserDetails() {
         <div className="info-card">
           <h2>Contact & Wallet Info</h2>
           <div className="contact-row">
-            <Mail size={14} /> {customer.email}
+            <Mail size={14} /> {user.email}
           </div>
           <div className="contact-row">
-            <Phone size={14} /> {customer.phone || 'Not provided'}
+            <Phone size={14} /> {user.phone || 'Not provided'}
           </div>
           <div className="wallet-summary-row">
             <span>Wallet Balance:</span>
             <strong className="wallet-text">
-              ₹{(customer.walletBalance || 0).toLocaleString('en-IN')}
+              ₹{(user.walletBalance || 0).toLocaleString('en-IN')}
             </strong>
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function UserDetails() {
       </div>
 
       <BlockConfirmModal
-        user={showModal ? customer : null}
+        user={showModal ? user : null}
         loading={actionLoading}
         onClose={() => setShowModal(false)}
         onConfirm={handleToggleBlock}

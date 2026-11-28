@@ -48,10 +48,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: userOnlyDefault(false),
     },
-    mustChangePassword: {
-      type: Boolean,
-      default: false,
-    },
     passwordChangedAt: {
       type: Date,
       default: null,

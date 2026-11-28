@@ -39,6 +39,7 @@ const createProtectMiddleware = (scope) => async (req, res, next) => {
       clearAuthCookies(res, scope);
       return res.status(403).json({
         success: false,
+        code: 'ACCOUNT_BLOCKED',
         message: 'Your account has been blocked. Contact Mobifys support.',
       });
     }

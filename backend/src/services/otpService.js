@@ -7,8 +7,8 @@ import { sendOtpEmail } from './emailService.js';
 const OTP_TTL_MS = 2 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 
-export const createAndSendOtp = async ({ identifier, purpose, userId = null }) => {
-  await Otp.deleteMany({ identifier, purpose, verifiedAt: null });
+export const createAndSendOtp = async ({ email, purpose, userId = null }) => {
+  await Otp.deleteMany({ email, purpose, verifiedAt: null });
 
   const plainOtp = crypto.randomInt(100000, 999999).toString();
   const otpHash = await bcrypt.hash(plainOtp, 10);
@@ -16,18 +16,18 @@ export const createAndSendOtp = async ({ identifier, purpose, userId = null }) =
 
   await Otp.create({
     userId,
-    identifier,
+    email,
     otpHash,
     purpose,
     expiresAt,
   });
 
-  await sendOtpEmail(identifier, plainOtp, purpose);
+  await sendOtpEmail(email, plainOtp, purpose);
   return { expiresAt };
 };
 
-export const verifyOtpCode = async ({ identifier, otp, purpose }) => {
-  const record = await Otp.findOne({ identifier, purpose, verifiedAt: null }).sort({
+export const verifyOtpCode = async ({ email, otp, purpose }) => {
+  const record = await Otp.findOne({ email, purpose, verifiedAt: null }).sort({
     createdAt: -1,
   });
 
